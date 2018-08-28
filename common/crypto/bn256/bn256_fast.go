@@ -1,4 +1,4 @@
-// Copyright 2017 The go-ethereum Authors
+// Copyright 2018 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,32 +14,22 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package hexutil_test
+// +build amd64 arm64
 
-import (
-	"encoding/json"
-	"fmt"
+// Package bn256 implements the Optimal Ate pairing over a 256-bit Barreto-Naehrig curve.
+package bn256
 
-	"github.com/DSiSc/statedb-NG/common/hexutil"
-)
+import "github.com/DSiSc/statedb-NG/common/crypto/bn256/cloudflare"
 
-type MyType [5]byte
+// G1 is an abstract cyclic group. The zero value is suitable for use as the
+// output of an operation, but cannot be used as an input.
+type G1 = bn256.G1
 
-func (v *MyType) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("MyType", input, v[:])
-}
+// G2 is an abstract cyclic group. The zero value is suitable for use as the
+// output of an operation, but cannot be used as an input.
+type G2 = bn256.G2
 
-func (v MyType) String() string {
-	return hexutil.Bytes(v[:]).String()
-}
-
-func ExampleUnmarshalFixedText() {
-	var v1, v2 MyType
-	fmt.Println("v1 error:", json.Unmarshal([]byte(`"0x01"`), &v1))
-	fmt.Println("v2 error:", json.Unmarshal([]byte(`"0x0101010101"`), &v2))
-	fmt.Println("v2:", v2)
-	// Output:
-	// v1 error: hex string has length 2, want 10 for MyType
-	// v2 error: <nil>
-	// v2: 0x0101010101
+// PairingCheck calculates the Optimal Ate pairing for a set of points.
+func PairingCheck(a []*G1, b []*G2) bool {
+	return bn256.PairingCheck(a, b)
 }
