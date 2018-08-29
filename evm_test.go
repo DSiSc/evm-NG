@@ -19,104 +19,69 @@ import (
 	"testing"
 
 	"encoding/hex"
-	"fmt"
 	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/blockchain/config"
 	"github.com/DSiSc/craft/types"
-	"github.com/DSiSc/statedb-NG/common/crypto"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 )
 
-// GenesisAlloc specifies the initial state that is part of the genesis block.
-type GenesisAlloc map[types.Address]GenesisAccount
+var (
+	callerAddress   = types.HexToAddress("0x8a8c58e424f4a6d2f0b2270860c96dfe34f10c78")
+	contractAddress = types.HexToAddress("0xf74cc8824a00bcb96e8546bf3b4dc47ace9cab2c")
+	code, _         = hex.DecodeString("6080604052348015600f57600080fd5b5060998061001e6000396000f300608060405260043610603e5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f81146043575b600080fd5b348015604e57600080fd5b5060556067565b60408051918252519081900360200190f35b610378905600a165627a7a723058205d540f3e87376532c076a230eb73eee4aa46c0df1a71cdba5a33cda64a8e6f400029")
+	input1, _       = hex.DecodeString("4f2be91f")
+	input2, _       = hex.DecodeString("4f2be91f")
+)
 
-// GenesisAccount is an account in the state of the genesis block.
-type GenesisAccount struct {
-	Code       []byte                    `json:"code,omitempty"`
-	Storage    map[types.Hash]types.Hash `json:"storage,omitempty"`
-	Balance    *big.Int                  `json:"balance" gencodec:"required"`
-	Nonce      uint64                    `json:"nonce,omitempty"`
-	PrivateKey []byte                    `json:"secretKey,omitempty"` // for tests
-}
-
-var callerAddress = types.HexToAddress("0x8a8c58e424f4a6d2f0b2270860c96dfe34f10c78")
-var contractAddress = types.HexToAddress("0xf74cc8824a00bcb96e8546bf3b4dc47ace9cab2c")
-
-//var code,_ = hex.DecodeString("0x6000600001600055");
-var code, _ = hex.DecodeString("6080604052348015600f57600080fd5b5060998061001e6000396000f300608060405260043610603e5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f81146043575b600080fd5b348015604e57600080fd5b5060556067565b60408051918252519081900360200190f35b610378905600a165627a7a723058205d540f3e87376532c076a230eb73eee4aa46c0df1a71cdba5a33cda64a8e6f400029")
-var input1, _ = hex.DecodeString("4f2be91f")
-var input2, _ = hex.DecodeString("4f2be91f")
-
-func TestVM(t *testing.T) {
-	//init statedb state
-	testStateDb := MakePreState(GenesisAlloc{})
-	insertData(testStateDb)
-	fmt.Println(testStateDb.GetCode(contractAddress))
-
-	//init chain config
-	callerRef := AccountRef(callerAddress)
-
-	//execute contract code
-	evmInst := newEVM(testStateDb)
-	resp, leftgas, error := evmInst.Call(callerRef, contractAddress, input1, 3000, big.NewInt(0))
-	fmt.Println("Resp:", resp, " Left Gas:", leftgas, " Error:", error)
-	resp, leftgas, error = evmInst.Call(callerRef, contractAddress, input2, 3000, big.NewInt(0))
-	fmt.Println("Resp:", resp, " Left Gas:", leftgas, " Error:", error)
-}
-
-func MakePreState(accounts GenesisAlloc) *blockchain.BlockChain {
+// mock a blockchain.
+func mockPreBlockChain() *blockchain.BlockChain {
+	// init chain
 	blockchain.InitBlockChain(config.BlockChainConfig{
 		PluginName:    blockchain.PLUGIN_MEMDB,
 		StateDataPath: "",
 		BlockDataPath: "",
 	})
-	state, _ := blockchain.NewLatestStateBlockChain()
-	for addr, a := range accounts {
-		state.SetCode(addr, a.Code)
-		state.SetNonce(addr, a.Nonce)
-		state.SetBalance(addr, a.Balance)
-		for k, v := range a.Storage {
-			state.SetState(addr, k, v)
-		}
-	}
-	// Commit and re-open to start with a clean statedb.
-	root, _ := state.Commit(false)
-	state, _ = blockchain.NewBlockChainByHash(root)
-	return state
-}
+	// create chain instance
+	bc, _ := blockchain.NewLatestStateBlockChain()
 
-func insertData(db *blockchain.BlockChain) {
 	//create caller account
-	db.CreateAccount(callerAddress)
-	db.AddBalance(callerAddress, big.NewInt(1000))
+	bc.CreateAccount(callerAddress)
+	bc.AddBalance(callerAddress, big.NewInt(1000))
 
 	//create contract account
-	db.CreateAccount(contractAddress)
-	db.SetCode(contractAddress, code)
-
-	db.Commit(false)
+	bc.CreateAccount(contractAddress)
+	bc.SetCode(contractAddress, code)
+	return bc
 }
 
-func newEVM(statedb1 *blockchain.BlockChain) *EVM {
-	canTransfer := func(db *blockchain.BlockChain, address types.Address, amount *big.Int) bool {
-		return true
+// mock a evm instance
+func mockEVM(bc *blockchain.BlockChain) *EVM {
+	msg := Message{
+		from:     callerAddress,
+		gasPrice: big.NewInt(0x5af3107a4000),
 	}
-	transfer := func(db *blockchain.BlockChain, sender, recipient types.Address, amount *big.Int) {}
-	context := Context{
-		CanTransfer: canTransfer,
-		Transfer:    transfer,
-		GetHash:     vmTestBlockHash,
-		Origin:      callerAddress,
-		Coinbase:    callerAddress,
-		BlockNumber: big.NewInt(0x00),
-		Time:        new(big.Int).SetUint64(0x01),
-		GasLimit:    0x0f4240,
-		Difficulty:  big.NewInt(0x0100),
-		GasPrice:    big.NewInt(0x5af3107a4000),
+	header := &types.Header{
+		PrevBlockHash: types.HexToHash(""),
+		Height:        1,
+		Timestamp:     1,
 	}
-	return NewEVM(context, statedb1)
+	author := types.HexToAddress("0x0000000000000000000000000000000000000000")
+	context := NewEVMContext(msg, header, bc, author)
+	return NewEVM(context, bc)
 }
 
-func vmTestBlockHash(n uint64) types.Hash {
-	return types.BytesToHash(crypto.Keccak256([]byte(big.NewInt(int64(n)).String())))
+// test execute contract
+func TestVM(t *testing.T) {
+	assert := assert.New(t)
+	//init statedb state
+	bc := mockPreBlockChain()
+
+	//execute contract code
+	evmInst := mockEVM(bc)
+
+	//specify the caller address
+	callerRef := AccountRef(callerAddress)
+	_, _, error := evmInst.Call(callerRef, contractAddress, input1, 3000, big.NewInt(0))
+	assert.Nil(error)
 }
