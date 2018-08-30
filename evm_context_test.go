@@ -10,10 +10,15 @@ import (
 // test new evm context
 func TestNewEVMContext(t *testing.T) {
 	assert := assert.New(t)
-	msg := Message{
-		from:     callerAddress,
-		gasPrice: big.NewInt(0x5af3107a4000),
-	}
+	msg := types.NewMessage(
+		callerAddress,
+		&contractAddress,
+		0,
+		big.NewInt(0x5af3107a4000),
+		0,
+		big.NewInt(2),
+		nil,
+		false)
 	header := &types.Header{
 		PrevBlockHash: types.HexToHash(""),
 		Height:        1,

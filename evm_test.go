@@ -57,10 +57,15 @@ func mockPreBlockChain() *blockchain.BlockChain {
 
 // mock a evm instance
 func mockEVM(bc *blockchain.BlockChain) *EVM {
-	msg := Message{
-		from:     callerAddress,
-		gasPrice: big.NewInt(0x5af3107a4000),
-	}
+	msg := types.NewMessage(
+		callerAddress,
+		&contractAddress,
+		0,
+		big.NewInt(0x5af3107a4000),
+		0,
+		big.NewInt(2),
+		nil,
+		false)
 	header := &types.Header{
 		PrevBlockHash: types.HexToHash(""),
 		Height:        1,
