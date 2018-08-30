@@ -12,13 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Version of dependencies
-VER_DSiSc_craft=0
-VER_DSiSc_blockchain=0
-VER_DSiSc_statedb-NG=0
-VER_DSiSc_evm-NG=0
-VER_DSiSc_txpool=0
-
 VERSION=$(shell grep "const Version" version/version.go | sed -E 's/.*"(.+)"$$/\1/')
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
@@ -89,18 +82,14 @@ get-tools:
 	@# go get -u golang.org/x/tools/cmd/gomvpkg
 
         # thirdparty tools
-	@# go get -u github.com/kardianos/govendor
 	go get -u github.com/stretchr/testify
+	@# go get -u github.com/kardianos/govendor
 	@# go get -u github.com/axw/gocov/...
 	@# go get -u github.com/client9/misspell/cmd/misspell
 
 fetch-deps: get-tools
-	@echo "Run go get to fetch dependencies ..."
-	go get -u gopkg.in/DSiSc/craft.v${VER_DSiSc_craft}
-	go get -u gopkg.in/DSiSc/blockchain.v${VER_DSiSc_blockchain}
-	go get -u gopkg.in/DSiSc/txpool.v${VER_DSiSc_txpool}
-	go get -u gopkg.in/DSiSc/evm-NG.v${VER_DSiSc_evm-NG}
-	go get -u gopkg.in/DSiSc/statedb-NG.v${VER_DSiSc_statedb-NG}
+	@echo "Run go get to fetch dependencies as described in dependencies.txt ..."
+	@bash scripts/ensure_deps.sh
 
 ## tools & deps
 devenv: get-tools fetch-deps
