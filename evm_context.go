@@ -22,21 +22,22 @@ import (
 	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/common/math"
+	"github.com/DSiSc/evm-NG/util"
 )
 
 // NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(msg types.Message, header *types.Header, chain *blockchain.BlockChain, author types.Address) Context {
+func NewEVMContext(tx types.Transaction, header *types.Header, chain *blockchain.BlockChain, author types.Address) Context {
 	var beneficiary types.Address
 	if (types.Address{} == author) {
-		// TODO: Initially we specify a zero address
-		beneficiary = types.HexToAddress("0x0000000000000000000000000000000000000000")
+		// TODO: Initially we specify a zero addressWWW
+		beneficiary = util.HexToAddress("0x0000000000000000000000000000000000000000")
 	}
 
 	return Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
-		Origin:      msg.From(),
+		Origin:      *tx.Data.From,
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).SetUint64(header.Height),
 		Time:        new(big.Int).SetUint64(header.Timestamp),
@@ -44,7 +45,7 @@ func NewEVMContext(msg types.Message, header *types.Header, chain *blockchain.Bl
 		Difficulty: new(big.Int).SetUint64(0x20000),
 		// TODO: Initially we will not specify a precise gas limit
 		GasLimit: uint64(math.MaxInt64),
-		GasPrice: new(big.Int).Set(msg.GasPrice()),
+		GasPrice: new(big.Int).Set(tx.Data.Price),
 	}
 }
 

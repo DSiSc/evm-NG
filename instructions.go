@@ -26,6 +26,7 @@ import (
 	"github.com/DSiSc/evm-NG/common/crypto"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/params"
+	"github.com/DSiSc/evm-NG/util"
 	statedblog "github.com/DSiSc/statedb-NG/common/types"
 )
 
@@ -377,7 +378,7 @@ func opSha3(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Sta
 	hash := crypto.Keccak256(data)
 
 	if evm.vmConfig.EnablePreimageRecording {
-		evm.StateDB.AddPreimage(types.BytesToHash(hash), data)
+		evm.StateDB.AddPreimage(util.BytesToHash(hash), data)
 	}
 	stack.push(evm.interpreter.intPool.get().SetBytes(hash))
 
@@ -386,23 +387,23 @@ func opSha3(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Sta
 }
 
 func opAddress(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(contract.Address().Big())
+	stack.push(util.AddressToBig(contract.Address()))
 	return nil, nil
 }
 
 func opBalance(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.Set(evm.StateDB.GetBalance(types.BigToAddress(slot)))
+	slot.Set(evm.StateDB.GetBalance(util.BigToAddress(slot)))
 	return nil, nil
 }
 
 func opOrigin(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(evm.Origin.Big())
+	stack.push(util.AddressToBig(evm.Origin))
 	return nil, nil
 }
 
 func opCaller(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(contract.Caller().Big())
+	stack.push(util.AddressToBig(contract.Caller()))
 	return nil, nil
 }
 
@@ -458,7 +459,7 @@ func opReturnDataCopy(pc *uint64, evm *EVM, contract *Contract, memory *Memory, 
 
 func opExtCodeSize(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.SetUint64(uint64(evm.StateDB.GetCodeSize(types.BigToAddress(slot))))
+	slot.SetUint64(uint64(evm.StateDB.GetCodeSize(util.BigToAddress(slot))))
 
 	return nil, nil
 }
@@ -485,7 +486,7 @@ func opCodeCopy(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack 
 
 func opExtCodeCopy(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (
-		addr       = types.BigToAddress(stack.pop())
+		addr       = util.BigToAddress(stack.pop())
 		memOffset  = stack.pop()
 		codeOffset = stack.pop()
 		length     = stack.pop()
@@ -507,7 +508,7 @@ func opBlockhash(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack
 
 	n := evm.interpreter.intPool.get().Sub(evm.BlockNumber, common.Big257)
 	if num.Cmp(n) > 0 && num.Cmp(evm.BlockNumber) < 0 {
-		stack.push(evm.GetHash(num.Uint64()).Big())
+		stack.push(util.HashToBig(evm.GetHash(num.Uint64())))
 	} else {
 		stack.push(evm.interpreter.intPool.getZero())
 	}
@@ -516,7 +517,7 @@ func opBlockhash(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack
 }
 
 func opCoinbase(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(evm.Coinbase.Big())
+	stack.push(util.AddressToBig(evm.Coinbase))
 	return nil, nil
 }
 
@@ -572,15 +573,15 @@ func opMstore8(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *
 
 func opSload(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := stack.peek()
-	val := evm.StateDB.GetState(contract.Address(), types.BigToHash(loc))
-	loc.SetBytes(val.Bytes())
+	val := evm.StateDB.GetState(contract.Address(), util.BigToHash(loc))
+	loc.SetBytes(util.HashToBytes(val))
 	return nil, nil
 }
 
 func opSstore(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	loc := types.BigToHash(stack.pop())
+	loc := util.BigToHash(stack.pop())
 	val := stack.pop()
-	evm.StateDB.SetState(contract.Address(), loc, types.BigToHash(val))
+	evm.StateDB.SetState(contract.Address(), loc, util.BigToHash(val))
 
 	evm.interpreter.intPool.put(val)
 	return nil, nil
@@ -655,7 +656,7 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *S
 	} else if suberr != nil && suberr != ErrCodeStoreOutOfGas {
 		stack.push(evm.interpreter.intPool.getZero())
 	} else {
-		stack.push(addr.Big())
+		stack.push(util.AddressToBig(addr))
 	}
 	contract.Gas += returnGas
 	evm.interpreter.intPool.put(value, offset, size)
@@ -672,7 +673,7 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Sta
 	gas := evm.callGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := util.BigToAddress(addr)
 	value = math.U256(value)
 	// Get the arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
@@ -701,7 +702,7 @@ func opCallCode(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack 
 	gas := evm.callGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := util.BigToAddress(addr)
 	value = math.U256(value)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
@@ -730,7 +731,7 @@ func opDelegateCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, st
 	gas := evm.callGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := util.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
@@ -755,7 +756,7 @@ func opStaticCall(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stac
 	gas := evm.callGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := util.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
@@ -796,7 +797,7 @@ func opStop(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Sta
 
 func opSuicide(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	balance := evm.StateDB.GetBalance(contract.Address())
-	evm.StateDB.AddBalance(types.BigToAddress(stack.pop()), balance)
+	evm.StateDB.AddBalance(util.BigToAddress(stack.pop()), balance)
 
 	evm.StateDB.Suicide(contract.Address())
 	return nil, nil
@@ -810,7 +811,7 @@ func makeLog(size int) executionFunc {
 		topics := make([]types.Hash, size)
 		mStart, mSize := stack.pop(), stack.pop()
 		for i := 0; i < size; i++ {
-			topics[i] = types.BigToHash(stack.pop())
+			topics[i] = util.BigToHash(stack.pop())
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())

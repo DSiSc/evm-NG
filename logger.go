@@ -24,6 +24,7 @@ import (
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/evm-NG/common/math"
+	"github.com/DSiSc/evm-NG/util"
 )
 
 // Storage represents a contract's storage.
@@ -149,8 +150,8 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost ui
 	// it in the local storage container.
 	if op == SSTORE && stack.len() >= 2 {
 		var (
-			value   = types.BigToHash(stack.data[stack.len()-2])
-			address = types.BigToHash(stack.data[stack.len()-1])
+			value   = util.BigToHash(stack.data[stack.len()-2])
+			address = util.BigToHash(stack.data[stack.len()-1])
 		)
 		l.changedValues[contract.Address()][address] = value
 	}

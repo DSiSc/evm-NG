@@ -22,13 +22,14 @@ import (
 	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/blockchain/config"
 	"github.com/DSiSc/craft/types"
+	"github.com/DSiSc/evm-NG/util"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 )
 
 var (
-	callerAddress   = types.HexToAddress("0x8a8c58e424f4a6d2f0b2270860c96dfe34f10c78")
-	contractAddress = types.HexToAddress("0xf74cc8824a00bcb96e8546bf3b4dc47ace9cab2c")
+	callerAddress   = util.HexToAddress("0x8a8c58e424f4a6d2f0b2270860c96dfe34f10c78")
+	contractAddress = util.HexToAddress("0xf74cc8824a00bcb96e8546bf3b4dc47ace9cab2c")
 	code, _         = hex.DecodeString("6080604052348015600f57600080fd5b5060998061001e6000396000f300608060405260043610603e5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f81146043575b600080fd5b348015604e57600080fd5b5060556067565b60408051918252519081900360200190f35b610378905600a165627a7a723058205d540f3e87376532c076a230eb73eee4aa46c0df1a71cdba5a33cda64a8e6f400029")
 	input1, _       = hex.DecodeString("4f2be91f")
 	input2, _       = hex.DecodeString("4f2be91f")
@@ -57,22 +58,24 @@ func mockPreBlockChain() *blockchain.BlockChain {
 
 // mock a evm instance
 func mockEVM(bc *blockchain.BlockChain) *EVM {
-	msg := types.NewMessage(
-		callerAddress,
-		&contractAddress,
-		0,
-		big.NewInt(0x5af3107a4000),
-		0,
-		big.NewInt(2),
-		nil,
-		false)
+	tx := types.Transaction{
+		Data: types.TxData{
+			From:         &callerAddress,
+			Recipient:    &contractAddress,
+			AccountNonce: 0,
+			Amount:       big.NewInt(0),
+			GasLimit:     100000000000,
+			Price:        big.NewInt(2),
+			Payload:      nil,
+		},
+	}
 	header := &types.Header{
-		PrevBlockHash: types.HexToHash(""),
+		PrevBlockHash: util.HexToHash(""),
 		Height:        1,
 		Timestamp:     1,
 	}
-	author := types.HexToAddress("0x0000000000000000000000000000000000000000")
-	context := NewEVMContext(msg, header, bc, author)
+	author := util.HexToAddress("0x0000000000000000000000000000000000000000")
+	context := NewEVMContext(tx, header, bc, author)
 	return NewEVM(context, bc)
 }
 

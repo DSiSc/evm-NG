@@ -27,6 +27,7 @@ import (
 	"github.com/DSiSc/evm-NG/common/crypto/bn256"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/params"
+	"github.com/DSiSc/evm-NG/util"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -41,23 +42,23 @@ type PrecompiledContract interface {
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
 // contracts used in the Frontier and Homestead releases.
 var PrecompiledContractsHomestead = map[types.Address]PrecompiledContract{
-	types.BytesToAddress([]byte{1}): &ecrecover{},
-	types.BytesToAddress([]byte{2}): &sha256hash{},
-	types.BytesToAddress([]byte{3}): &ripemd160hash{},
-	types.BytesToAddress([]byte{4}): &dataCopy{},
+	util.BytesToAddress([]byte{1}): &ecrecover{},
+	util.BytesToAddress([]byte{2}): &sha256hash{},
+	util.BytesToAddress([]byte{3}): &ripemd160hash{},
+	util.BytesToAddress([]byte{4}): &dataCopy{},
 }
 
 // PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
 // contracts used in the Byzantium release.
 var PrecompiledContractsByzantium = map[types.Address]PrecompiledContract{
-	types.BytesToAddress([]byte{1}): &ecrecover{},
-	types.BytesToAddress([]byte{2}): &sha256hash{},
-	types.BytesToAddress([]byte{3}): &ripemd160hash{},
-	types.BytesToAddress([]byte{4}): &dataCopy{},
-	types.BytesToAddress([]byte{5}): &bigModExp{},
-	types.BytesToAddress([]byte{6}): &bn256Add{},
-	types.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	types.BytesToAddress([]byte{8}): &bn256Pairing{},
+	util.BytesToAddress([]byte{1}): &ecrecover{},
+	util.BytesToAddress([]byte{2}): &sha256hash{},
+	util.BytesToAddress([]byte{3}): &ripemd160hash{},
+	util.BytesToAddress([]byte{4}): &dataCopy{},
+	util.BytesToAddress([]byte{5}): &bigModExp{},
+	util.BytesToAddress([]byte{6}): &bn256Add{},
+	util.BytesToAddress([]byte{7}): &bn256ScalarMul{},
+	util.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
