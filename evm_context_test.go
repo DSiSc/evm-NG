@@ -51,11 +51,11 @@ func TestGetHashFn(t *testing.T) {
 	cuBlock := bc.GetCurrentBlock()
 	header := &types.Header{
 		Height:        cuBlock.Header.Height + 1,
-		PrevBlockHash: cuBlock.Header.BlockHash,
+		PrevBlockHash: cuBlock.HeaderHash,
 	}
 	hashFunc := GetHashFn(header, bc)
 	hash := hashFunc(cuBlock.Header.Height)
-	assert.Equal(hash, cuBlock.Header.BlockHash)
+	assert.Equal(hash, cuBlock.HeaderHash)
 }
 
 // test can transfer function

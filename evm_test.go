@@ -37,6 +37,9 @@ var (
 
 // mock a blockchain.
 func mockPreBlockChain() *blockchain.BlockChain {
+	//init event center
+	types.GlobalEventCenter = &eventCenter{}
+
 	// init chain
 	blockchain.InitBlockChain(config.BlockChainConfig{
 		PluginName:    blockchain.PLUGIN_MEMDB,
@@ -92,4 +95,32 @@ func TestVM(t *testing.T) {
 	callerRef := AccountRef(callerAddress)
 	_, _, error := evmInst.Call(callerRef, contractAddress, input1, 3000, big.NewInt(0))
 	assert.Nil(error)
+}
+
+type eventCenter struct {
+}
+
+// subscriber subscribe specified eventType with eventFunc
+func (*eventCenter) Subscribe(eventType types.EventType, eventFunc types.EventFunc) types.Subscriber {
+	return nil
+}
+
+// subscriber unsubscribe specified eventType
+func (*eventCenter) UnSubscribe(eventType types.EventType, subscriber types.Subscriber) (err error) {
+	return nil
+}
+
+// notify subscriber of eventType
+func (*eventCenter) Notify(eventType types.EventType, value interface{}) (err error) {
+	return nil
+}
+
+// notify specified eventFunc
+func (*eventCenter) NotifySubscriber(eventFunc types.EventFunc, value interface{}) {
+
+}
+
+// notify subscriber traversing all events
+func (*eventCenter) NotifyAll() (errs []error) {
+	return nil
 }
