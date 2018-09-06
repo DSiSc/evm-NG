@@ -22,9 +22,9 @@ import (
 	"math/big"
 
 	"github.com/DSiSc/craft/types"
+	"github.com/DSiSc/crypto-suite/crypto"
+	"github.com/DSiSc/crypto-suite/crypto/bn256"
 	"github.com/DSiSc/evm-NG/common"
-	"github.com/DSiSc/evm-NG/common/crypto"
-	"github.com/DSiSc/evm-NG/common/crypto/bn256"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/params"
 	"github.com/DSiSc/evm-NG/util"

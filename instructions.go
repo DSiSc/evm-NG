@@ -22,8 +22,8 @@ import (
 	"math/big"
 
 	"github.com/DSiSc/craft/types"
+	"github.com/DSiSc/crypto-suite/crypto"
 	"github.com/DSiSc/evm-NG/common"
-	"github.com/DSiSc/evm-NG/common/crypto"
 	"github.com/DSiSc/evm-NG/common/math"
 	statedblog "github.com/DSiSc/evm-NG/common/types"
 	"github.com/DSiSc/evm-NG/params"
