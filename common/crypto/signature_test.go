@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/DSiSc/statedb-NG/common"
-	"github.com/DSiSc/statedb-NG/common/hexutil"
-	"github.com/DSiSc/statedb-NG/common/math"
+	"github.com/DSiSc/evm-NG/common"
+	"github.com/DSiSc/evm-NG/common/hexutil"
+	"github.com/DSiSc/evm-NG/common/math"
 )
 
 var (

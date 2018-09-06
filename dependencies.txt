@@ -5,5 +5,5 @@
 github.com/DSiSc/blockchain:master
 github.com/DSiSc/blockstore:master
 github.com/DSiSc/craft:master
-github.com/DSiSc/statedb-NG:master
+github.com/DSiSc/evm-NG:master
 github.com/DSiSc/txpool:master

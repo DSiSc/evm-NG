@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/DSiSc/statedb-NG/common/hexutil"
+	"github.com/DSiSc/evm-NG/common/hexutil"
 )
 
 type MyType [5]byte

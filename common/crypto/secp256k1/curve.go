@@ -36,7 +36,7 @@ import (
 	"math/big"
 	"unsafe"
 
-	"github.com/DSiSc/statedb-NG/common/math"
+	"github.com/DSiSc/evm-NG/common/math"
 )
 
 /*

@@ -42,7 +42,7 @@ import (
 	"fmt"
 	"hash"
 
-	ethcrypto "github.com/DSiSc/statedb-NG/common/crypto"
+	ethcrypto "github.com/DSiSc/evm-NG/common/crypto"
 )
 
 var (

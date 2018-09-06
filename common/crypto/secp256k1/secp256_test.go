@@ -24,8 +24,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/DSiSc/statedb-NG/common/crypto/randentropy"
-	"github.com/DSiSc/statedb-NG/common/math"
+	"github.com/DSiSc/evm-NG/common/crypto/randentropy"
+	"github.com/DSiSc/evm-NG/common/math"
 )
 
 const TestCount = 1000

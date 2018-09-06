@@ -27,9 +27,9 @@ import (
 	"testing"
 
 	"github.com/DSiSc/craft/types"
-	"github.com/DSiSc/statedb-NG/common"
-	"github.com/DSiSc/statedb-NG/common/hexutil"
-	"github.com/DSiSc/statedb-NG/util"
+	"github.com/DSiSc/evm-NG/common"
+	"github.com/DSiSc/evm-NG/common/hexutil"
+	"github.com/DSiSc/evm-NG/util"
 )
 
 var testAddrHex = "970e8128ab834e8eac17ab8e3812f010678cf791"

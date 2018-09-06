@@ -25,9 +25,9 @@ import (
 	"github.com/DSiSc/evm-NG/common"
 	"github.com/DSiSc/evm-NG/common/crypto"
 	"github.com/DSiSc/evm-NG/common/math"
+	statedblog "github.com/DSiSc/evm-NG/common/types"
 	"github.com/DSiSc/evm-NG/params"
 	"github.com/DSiSc/evm-NG/util"
-	statedblog "github.com/DSiSc/statedb-NG/common/types"
 )
 
 var (

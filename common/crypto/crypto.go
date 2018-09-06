@@ -29,11 +29,11 @@ import (
 	"os"
 
 	"github.com/DSiSc/craft/types"
-	"github.com/DSiSc/statedb-NG/common"
-	"github.com/DSiSc/statedb-NG/common/crypto/sha3"
-	"github.com/DSiSc/statedb-NG/common/math"
-	"github.com/DSiSc/statedb-NG/common/rlp"
-	"github.com/DSiSc/statedb-NG/util"
+	"github.com/DSiSc/evm-NG/common"
+	"github.com/DSiSc/evm-NG/common/crypto/sha3"
+	"github.com/DSiSc/evm-NG/common/math"
+	"github.com/DSiSc/evm-NG/common/rlp"
+	"github.com/DSiSc/evm-NG/util"
 )
 
 var (

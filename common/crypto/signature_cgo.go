@@ -23,7 +23,7 @@ import (
 	"crypto/elliptic"
 	"fmt"
 
-	"github.com/DSiSc/statedb-NG/common/math"
+	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 

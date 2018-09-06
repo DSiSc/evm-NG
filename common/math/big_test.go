@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/DSiSc/statedb-NG/common"
+	"github.com/DSiSc/evm-NG/common"
 )
 
 func TestHexOrDecimal256(t *testing.T) {
