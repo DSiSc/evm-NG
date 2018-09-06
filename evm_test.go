@@ -124,3 +124,8 @@ func (*eventCenter) NotifySubscriber(eventFunc types.EventFunc, value interface{
 func (*eventCenter) NotifyAll() (errs []error) {
 	return nil
 }
+
+// unsubscrible all event
+func (*eventCenter) UnSubscribeAll() {
+
+}
