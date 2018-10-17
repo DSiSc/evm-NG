@@ -330,7 +330,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr types.Address, input []byte,
 }
 
 // Create creates a new contract using code as deployment code.
-func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
+func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int, nonce uint64) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
 
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
@@ -341,8 +341,8 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 		return nil, types.Address{}, gas, ErrInsufficientBalance
 	}
 	// Ensure there's no existing contract already at the designated address
-	nonce := evm.StateDB.GetNonce(caller.Address())
-	evm.StateDB.SetNonce(caller.Address(), nonce+1)
+	// nonce := evm.StateDB.GetNonce(caller.Address())
+	evm.StateDB.SetNonce(caller.Address(), nonce)
 
 	contractAddr = crypto.CreateAddress(caller.Address(), nonce)
 	contractHash := evm.StateDB.GetCodeHash(contractAddr)
