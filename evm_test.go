@@ -37,15 +37,12 @@ var (
 
 // mock a blockchain.
 func mockPreBlockChain() *blockchain.BlockChain {
-	//init event center
-	types.GlobalEventCenter = &eventCenter{}
-
 	// init chain
 	blockchain.InitBlockChain(config.BlockChainConfig{
 		PluginName:    blockchain.PLUGIN_MEMDB,
 		StateDataPath: "",
 		BlockDataPath: "",
-	})
+	}, &eventCenter{})
 	// create chain instance
 	bc, _ := blockchain.NewLatestStateBlockChain()
 
