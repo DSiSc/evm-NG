@@ -25,7 +25,6 @@ import (
 	"github.com/DSiSc/crypto-suite/crypto"
 	"github.com/DSiSc/evm-NG/common"
 	"github.com/DSiSc/evm-NG/common/math"
-	statedblog "github.com/DSiSc/evm-NG/common/types"
 	"github.com/DSiSc/evm-NG/params"
 	"github.com/DSiSc/evm-NG/util"
 )
@@ -815,7 +814,7 @@ func makeLog(size int) executionFunc {
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())
-		evm.StateDB.AddLog(&statedblog.Log{
+		evm.StateDB.AddLog(&types.Log{
 			Address: contract.Address(),
 			Topics:  topics,
 			Data:    d,
