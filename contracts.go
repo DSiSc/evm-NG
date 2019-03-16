@@ -19,8 +19,6 @@ package evm
 import (
 	"crypto/sha256"
 	"errors"
-	"math/big"
-
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/crypto-suite/crypto"
 	"github.com/DSiSc/crypto-suite/crypto/bn256"
@@ -29,6 +27,7 @@ import (
 	"github.com/DSiSc/evm-NG/params"
 	"github.com/DSiSc/evm-NG/util"
 	"golang.org/x/crypto/ripemd160"
+	"math/big"
 )
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
@@ -118,7 +117,7 @@ func (c *sha256hash) Run(input []byte) ([]byte, error) {
 	return h[:], nil
 }
 
-// RIPMED160 implemented as a native contract.
+// RIPEMD160 implemented as a native contract.
 type ripemd160hash struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.

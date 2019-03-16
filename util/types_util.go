@@ -34,6 +34,11 @@ func BigToAddress(b *big.Int) types.Address { return BytesToAddress(b.Bytes()) }
 // Big converts an address to a big integer.
 func AddressToBig(addr types.Address) *big.Int { return new(big.Int).SetBytes(addr[:]) }
 
+// AddressToBytes convert address to []byte
+func AddressToBytes(addr types.Address) []byte {
+	return addr[:]
+}
+
 // HexToHash sets byte representation of s to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func HexToHash(s string) types.Hash { return BytesToHash(FromHex(s)) }
@@ -80,6 +85,11 @@ func FromHex(s string) []byte {
 func Hex2Bytes(str string) []byte {
 	h, _ := hex.DecodeString(str)
 	return h
+}
+
+// Bytes2Hex returns the hexadecimal encoding of d.
+func Bytes2Hex(d []byte) string {
+	return hex.EncodeToString(d)
 }
 
 // Encode encodes b as a hex string with 0x prefix.

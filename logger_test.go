@@ -17,11 +17,11 @@
 package evm
 
 import (
-	"math/big"
-	"testing"
-
+	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/util"
+	"math/big"
+	"testing"
 )
 
 type dummyContractRef struct {
@@ -41,9 +41,15 @@ func (d *dummyContractRef) SetBalance(*big.Int)        {}
 func (d *dummyContractRef) SetNonce(uint64)            {}
 func (d *dummyContractRef) Balance() *big.Int          { return new(big.Int) }
 
+type dummyStatedb struct {
+	blockchain.BlockChain
+}
+
+func (*dummyStatedb) GetRefund() uint64 { return 1337 }
+
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewEVM(Context{}, nil)
+		env      = NewEVM(Context{}, mockPreBlockChain())
 		logger   = NewStructLogger(nil)
 		mem      = NewMemory()
 		stack    = newstack()
@@ -51,9 +57,7 @@ func TestStoreCapture(t *testing.T) {
 	)
 	stack.push(big.NewInt(1))
 	stack.push(big.NewInt(0))
-
 	var index types.Hash
-
 	logger.CaptureState(env, 0, SSTORE, 0, 0, mem, stack, contract, 0, nil)
 	if len(logger.changedValues[contract.Address()]) == 0 {
 		t.Fatalf("expected exactly 1 changed value on address %x, got %d", contract.Address(), len(logger.changedValues[contract.Address()]))

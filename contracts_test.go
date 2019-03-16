@@ -21,7 +21,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/DSiSc/evm-NG/common"
 	"github.com/DSiSc/evm-NG/util"
 )
 
@@ -339,14 +338,14 @@ var bn256PairingTests = []precompiledTest{
 
 func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 	p := PrecompiledContractsByzantium[util.HexToAddress(addr)]
-	in := common.Hex2Bytes(test.input)
+	in := util.Hex2Bytes(test.input)
 	contract := NewContract(AccountRef(util.HexToAddress("1337")),
 		nil, new(big.Int), p.RequiredGas(in))
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.name, contract.Gas), func(t *testing.T) {
 		if res, err := RunPrecompiledContract(p, in, contract); err != nil {
 			t.Error(err)
-		} else if common.Bytes2Hex(res) != test.expected {
-			t.Errorf("Expected %v, got %v", test.expected, common.Bytes2Hex(res))
+		} else if util.Bytes2Hex(res) != test.expected {
+			t.Errorf("Expected %v, got %v", test.expected, util.Bytes2Hex(res))
 		}
 	})
 }
@@ -356,7 +355,7 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 		return
 	}
 	p := PrecompiledContractsByzantium[util.HexToAddress(addr)]
-	in := common.Hex2Bytes(test.input)
+	in := util.Hex2Bytes(test.input)
 	reqGas := p.RequiredGas(in)
 	contract := NewContract(AccountRef(util.HexToAddress("1337")),
 		nil, new(big.Int), reqGas)
@@ -380,8 +379,8 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 			bench.Error(err)
 			return
 		}
-		if common.Bytes2Hex(res) != test.expected {
-			bench.Error(fmt.Sprintf("Expected %v, got %v", test.expected, common.Bytes2Hex(res)))
+		if util.Bytes2Hex(res) != test.expected {
+			bench.Error(fmt.Sprintf("Expected %v, got %v", test.expected, util.Bytes2Hex(res)))
 			return
 		}
 	})

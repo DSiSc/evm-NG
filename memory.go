@@ -18,9 +18,8 @@ package evm
 
 import (
 	"fmt"
-	"math/big"
-
 	"github.com/DSiSc/evm-NG/common/math"
+	"math/big"
 )
 
 // Memory implements a simple memory model for the ethereum virtual machine.
@@ -29,7 +28,7 @@ type Memory struct {
 	lastGasCost uint64
 }
 
-// NewMemory returns a new memory memory model.
+// NewMemory returns a new memory model.
 func NewMemory() *Memory {
 	return &Memory{}
 }

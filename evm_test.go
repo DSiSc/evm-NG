@@ -35,6 +35,16 @@ var (
 	input2, _       = hex.DecodeString("4f2be91f")
 )
 
+// mock block struct
+func mockBlock() *types.Block {
+	header := &types.Header{}
+	block := &types.Block{
+		Header:     header,
+		HeaderHash: util.HexToHash("0xbcf1f41fa128663d05981ef1559e343f5be486d658c8e3d8764dfdd68eface12"),
+	}
+	return block
+}
+
 // mock a blockchain.
 func mockPreBlockChain() *blockchain.BlockChain {
 	// init chain
@@ -53,6 +63,7 @@ func mockPreBlockChain() *blockchain.BlockChain {
 	//create contract account
 	bc.CreateAccount(contractAddress)
 	bc.SetCode(contractAddress, code)
+	bc.WriteBlock(mockBlock())
 	return bc
 }
 

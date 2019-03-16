@@ -17,14 +17,15 @@
 package evm
 
 import (
+	"encoding/hex"
 	"fmt"
-	"math/big"
-	"time"
-
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/util"
+	"io"
+	"math/big"
+	"time"
 )
 
 // Storage represents a contract's storage.
@@ -54,16 +55,17 @@ type LogConfig struct {
 // StructLog is emitted to the EVM each cycle and lists information about the current internal state
 // prior to the execution of the statement.
 type StructLog struct {
-	Pc         uint64                    `json:"pc"`
-	Op         OpCode                    `json:"op"`
-	Gas        uint64                    `json:"gas"`
-	GasCost    uint64                    `json:"gasCost"`
-	Memory     []byte                    `json:"memory"`
-	MemorySize int                       `json:"memSize"`
-	Stack      []*big.Int                `json:"stack"`
-	Storage    map[types.Hash]types.Hash `json:"-"`
-	Depth      int                       `json:"depth"`
-	Err        error                     `json:"-"`
+	Pc            uint64                    `json:"pc"`
+	Op            OpCode                    `json:"op"`
+	Gas           uint64                    `json:"gas"`
+	GasCost       uint64                    `json:"gasCost"`
+	Memory        []byte                    `json:"memory"`
+	MemorySize    int                       `json:"memSize"`
+	Stack         []*big.Int                `json:"stack"`
+	Storage       map[types.Hash]types.Hash `json:"-"`
+	Depth         int                       `json:"depth"`
+	RefundCounter uint64                    `json:"refund"`
+	Err           error                     `json:"-"`
 }
 
 // overrides for gencodec
@@ -175,7 +177,7 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost ui
 		storage = l.changedValues[contract.Address()].Copy()
 	}
 	// create a new snaptshot of the EVM.
-	log := StructLog{pc, op, gas, cost, mem, memory.Len(), stck, storage, depth, err}
+	log := StructLog{pc, op, gas, cost, mem, memory.Len(), stck, storage, depth, env.StateDB.GetRefund(), err}
 
 	l.logs = append(l.logs, log)
 	return nil
@@ -208,3 +210,46 @@ func (l *StructLogger) Error() error { return l.err }
 
 // Output returns the VM return value captured by the trace.
 func (l *StructLogger) Output() []byte { return l.output }
+
+// WriteTrace writes a formatted trace to the given writer
+func WriteTrace(writer io.Writer, logs []StructLog) {
+	for _, log := range logs {
+		fmt.Fprintf(writer, "%-16spc=%08d gas=%v cost=%v", log.Op, log.Pc, log.Gas, log.GasCost)
+		if log.Err != nil {
+			fmt.Fprintf(writer, " ERROR: %v", log.Err)
+		}
+		fmt.Fprintln(writer)
+
+		if len(log.Stack) > 0 {
+			fmt.Fprintln(writer, "Stack:")
+			for i := len(log.Stack) - 1; i >= 0; i-- {
+				fmt.Fprintf(writer, "%08d  %x\n", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
+			}
+		}
+		if len(log.Memory) > 0 {
+			fmt.Fprintln(writer, "Memory:")
+			fmt.Fprint(writer, hex.Dump(log.Memory))
+		}
+		if len(log.Storage) > 0 {
+			fmt.Fprintln(writer, "Storage:")
+			for h, item := range log.Storage {
+				fmt.Fprintf(writer, "%x: %x\n", h, item)
+			}
+		}
+		fmt.Fprintln(writer)
+	}
+}
+
+// WriteLogs writes vm logs in a readable format to the given writer
+func WriteLogs(writer io.Writer, logs []*types.Log) {
+	for _, log := range logs {
+		fmt.Fprintf(writer, "LOG%d: %x bn=%d txi=%x\n", len(log.Topics), log.Address, log.BlockNumber, log.TxIndex)
+
+		for i, topic := range log.Topics {
+			fmt.Fprintf(writer, "%08d  %x\n", i, topic)
+		}
+
+		fmt.Fprint(writer, hex.Dump(log.Data))
+		fmt.Fprintln(writer)
+	}
+}

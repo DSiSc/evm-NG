@@ -21,7 +21,7 @@ import (
 	"math/big"
 )
 
-// CallContext provides a basic interface for the EVM calling conventions. The EVM EVM
+// CallContext provides a basic interface for the EVM calling conventions. The EVM
 // depends on this context being implemented for doing subcalls and initialising new EVM contracts.
 type CallContext interface {
 	// Call another contract
