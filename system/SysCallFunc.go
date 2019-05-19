@@ -1,6 +1,7 @@
 package system
 
 import (
+	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/util"
 	"reflect"
 	"strings"
@@ -8,8 +9,16 @@ import (
 
 //system contract address
 var (
-	TencentCosAddr = util.HexToAddress("0000000000000000000000000000000000010000")
+	SystemBufferAddr = util.HexToAddress("0000000000000000000000000000000000011111")
+	TencentCosAddr   = util.HexToAddress("0000000000000000000000000000000000011110")
 )
+
+//IsSystemContrac check the contract with specified address is system contract
+func IsSystemContrac(addr types.Address) bool {
+	addrBig := util.AddressToBig(addr)
+	sysAddrBig := util.AddressToBig(TencentCosAddr)
+	return addrBig.Cmp(sysAddrBig) < 1
+}
 
 // SysCallFunc contains the introspected type information for a function
 type SysCallFunc struct {
