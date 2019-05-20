@@ -22,6 +22,12 @@ const (
 	objName = "hello.txt"
 )
 
+func mockTencentCosContract() *TencentCosContract {
+	return &TencentCosContract{
+		rw: bytes.NewBuffer(make([]byte, 1024)),
+	}
+}
+
 func mockClient() *cos.Client {
 	client, _ := buildCosClient(rawUrl)
 	return client
@@ -58,6 +64,9 @@ func mockErrorResponse() *cos.Response {
 func TestGetObject(t *testing.T) {
 	defer monkey.UnpatchAll()
 	assert := assert.New(t)
+	tencentCos := mockTencentCosContract()
+	buf := bytes.NewBufferString("")
+	tencentCos.rw = buf
 	client := mockClient()
 	monkey.Patch(cos.NewClient, func(uri *cos.BaseURL, httpClient *http.Client) *cos.Client {
 		return client
@@ -66,15 +75,16 @@ func TestGetObject(t *testing.T) {
 	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "Get", func(obj *cos.ObjectService, ctx context.Context, name string, opt *cos.ObjectGetOptions, id ...string) (*cos.Response, error) {
 		return response, nil
 	})
-	obj, err := GetObject(rawUrl, objName)
+	err := tencentCos.GetObject(rawUrl, objName)
 	assert.Nil(err)
+	obj, _ := ioutil.ReadAll(tencentCos.rw)
 	assert.Equal([]byte("Hello"), obj)
 
 	response = mockErrorResponse()
 	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "Get", func(obj *cos.ObjectService, ctx context.Context, name string, opt *cos.ObjectGetOptions, id ...string) (*cos.Response, error) {
 		return response, nil
 	})
-	obj, err = GetObject(rawUrl, objName)
+	err = tencentCos.GetObject(rawUrl, objName)
 	assert.EqualError(err, fmt.Sprintf("response error, Code: %s, Message: %s, Resource: %s, RequestId: %s, TraceId: %s", respError.Code, respError.Message, respError.Resource, respError.RequestId, respError.TraceId))
 }
 
@@ -85,6 +95,8 @@ func TestPutObject(t *testing.T) {
 		ETag: "b1946ac92492d2347c6235b4d2611184",
 	}
 	assert := assert.New(t)
+	tencentCos := mockTencentCosContract()
+	tencentCos.rw.Write(objBytes)
 	client := mockClient()
 	monkey.Patch(cos.NewClient, func(uri *cos.BaseURL, httpClient *http.Client) *cos.Client {
 		return client
@@ -96,7 +108,7 @@ func TestPutObject(t *testing.T) {
 	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "Put", func(obj *cos.ObjectService, ctx context.Context, name string, r io.Reader, opt *cos.ObjectPutOptions) (*cos.Response, error) {
 		return response, nil
 	})
-	objMeta1, err := PutObject(rawUrl, objName, objBytes)
+	objMeta1, err := tencentCos.PutObject(rawUrl, objName)
 	assert.Nil(err)
 	assert.Equal(objMeta.ETag, objMeta1.ETag)
 
@@ -104,38 +116,6 @@ func TestPutObject(t *testing.T) {
 	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "Put", func(obj *cos.ObjectService, ctx context.Context, name string, r io.Reader, opt *cos.ObjectPutOptions) (*cos.Response, error) {
 		return response, nil
 	})
-	_, err = PutObject(rawUrl, objName, objBytes)
+	_, err = tencentCos.PutObject(rawUrl, objName)
 	assert.EqualError(err, fmt.Sprintf("response error, Code: %s, Message: %s, Resource: %s, RequestId: %s, TraceId: %s", respError.Code, respError.Message, respError.Resource, respError.RequestId, respError.TraceId))
-}
-
-func TestPutObjectFromFile(t *testing.T) {
-	defer monkey.UnpatchAll()
-	assert := assert.New(t)
-	fileName := "./hello.txt"
-	objMeta := &ObjectMeta{
-		ETag: "b1946ac92492d2347c6235b4d2611184",
-	}
-
-	client := mockClient()
-	monkey.Patch(cos.NewClient, func(uri *cos.BaseURL, httpClient *http.Client) *cos.Client {
-		return client
-	})
-
-	response := mockSuccessResponse()
-	response.Header = http.Header{}
-	response.Header.Set("ETag", "b1946ac92492d2347c6235b4d2611184")
-	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "PutFromFile", func(obj *cos.ObjectService, ctx context.Context, name string, filePath string, opt *cos.ObjectPutOptions) (*cos.Response, error) {
-		return response, nil
-	})
-	objMeta1, err := PutObjectFromFile(rawUrl, objName, fileName)
-	assert.Nil(err)
-	assert.Equal(objMeta.ETag, objMeta1.ETag)
-
-	response = mockErrorResponse()
-	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "PutFromFile", func(obj *cos.ObjectService, ctx context.Context, name string, filePath string, opt *cos.ObjectPutOptions) (*cos.Response, error) {
-		return response, nil
-	})
-	_, err = PutObjectFromFile(rawUrl, objName, fileName)
-	assert.EqualError(err, fmt.Sprintf("response error, Code: %s, Message: %s, Resource: %s, RequestId: %s, TraceId: %s", respError.Code, respError.Message, respError.Resource, respError.RequestId, respError.TraceId))
-
 }

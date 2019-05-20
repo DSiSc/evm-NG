@@ -1,11 +1,12 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"github.com/DSiSc/evm-NG/system"
+	"github.com/DSiSc/evm-NG"
+	"github.com/DSiSc/evm-NG/system/contract/buffer"
+	"github.com/DSiSc/evm-NG/system/contract/util"
 	"github.com/pkg/errors"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
@@ -14,6 +15,52 @@ import (
 	"net/url"
 	"reflect"
 )
+
+var (
+	getObjectMethodHash = string(util.Hash([]byte("GetObject(string,string)")))
+	putObjectMethodHash = string(util.Hash([]byte("GetObject(string,string)")))
+)
+
+func init() {
+	evm.RegisterRoutes(evm.TencentCosAddr, func(execEvm *evm.EVM, caller evm.ContractRef, input []byte) ([]byte, error) {
+		solidityBuffer := buffer.NewSolidityBuffer(execEvm, caller)
+		tencentCos := NewTencentCosContract(solidityBuffer)
+		return execute(tencentCos, input)
+	})
+}
+
+// execute the cos contract
+func execute(cos *TencentCosContract, input []byte) ([]byte, error) {
+	methodHash := util.ExtractMethodHash(input)
+	switch string(methodHash) {
+	case getObjectMethodHash:
+		args, err := util.ExtractParam(input[len(methodHash):], reflect.String, reflect.String)
+		if err != nil {
+			return nil, err
+		}
+		err = cos.GetObject(args[0].(string), args[1].(string))
+		if err != nil {
+			return nil, err
+		}
+	case putObjectMethodHash:
+		args, err := util.ExtractParam(input[len(methodHash):], reflect.String, reflect.String)
+		if err != nil {
+			return nil, err
+		}
+		objMeta, err := cos.PutObject(args[0].(string), args[1].(string))
+		if err != nil {
+			return nil, err
+		}
+		ret, err := util.EncodeReturnValue(objMeta.ETag, objMeta.VersionId, objMeta.EncryptionAlg)
+		if err != nil {
+			return nil, err
+		}
+		return ret, nil
+	default:
+		return nil, errors.New("unknown method")
+	}
+	return nil, nil
+}
 
 //Cos response error
 type RespError struct {
@@ -31,63 +78,58 @@ type ObjectMeta struct {
 	EncryptionAlg string
 }
 
-// tencent cos call routes
-var CosRoutes = map[string]*system.SysCallFunc{
-	"GetObject":         system.NewSysCallFunc(GetObject, "rawurl,name"),
-	"PutObject":         system.NewSysCallFunc(PutObject, "rawurl,name,objBytes"),
-	"PutObjectFromFile": system.NewSysCallFunc(PutObjectFromFile, "rawurl,name,objBytes"),
+// TencentCosContract `tencent cloud object storage` system contract
+type TencentCosContract struct {
+	rw io.ReadWriter
 }
 
-// GetObject download an object from the cloud server
-func GetObject(rawurl, name string) ([]byte, error) {
+// create a new instance
+func NewTencentCosContract(rw io.ReadWriter) *TencentCosContract {
+	return &TencentCosContract{
+		rw: rw,
+	}
+}
+
+// GetObject download an object from the cloud server to `rw`
+func (this *TencentCosContract) GetObject(rawurl, name string) error {
 	client, err := buildCosClient(rawurl)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	resp, err := client.Object.Get(context.Background(), name, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 	if err = checkResponse(resp); err != nil {
-		return nil, err
+		return err
 	}
 
-	var respBytes []byte
-	err = parseResp(resp.Body, bytesType, &respBytes)
-	return respBytes, err
+	bufferBytes := make([]byte, buffer.MaxReadWriteSize)
+	for {
+		nr, err := resp.Body.Read(bufferBytes)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil || nr <= 0 {
+			return err
+		}
+		nw, err := this.rw.Write(bufferBytes[:nr])
+		if err != nil || nw < nr {
+			return err
+		}
+	}
 }
 
-// PutObject upload an object to cloud server
-func PutObject(rawurl, name string, objBytes []byte) (*ObjectMeta, error) {
+// PutObject upload an object(stored in `rw`) to cloud server
+func (this *TencentCosContract) PutObject(rawurl, name string) (*ObjectMeta, error) {
 	client, err := buildCosClient(rawurl)
 	if err != nil {
 		return nil, err
 	}
 
-	br := bytes.NewReader(objBytes)
-	resp, err := client.Object.Put(context.Background(), name, br, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if err = checkResponse(resp); err != nil {
-		return nil, err
-	}
-
-	objMeta := getObjectMeta(resp.Header)
-	return objMeta, err
-}
-
-// PutObjectFromFile upload local file to cloud server
-func PutObjectFromFile(rawurl, name, filePath string) (*ObjectMeta, error) {
-	client, err := buildCosClient(rawurl)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := client.Object.PutFromFile(context.Background(), name, filePath, nil)
+	resp, err := client.Object.Put(context.Background(), name, this.rw, nil)
 	if err != nil {
 		return nil, err
 	}
