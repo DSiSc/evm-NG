@@ -1,10 +1,10 @@
 package util
 
 import (
-	"github.com/DSiSc/evm-NG"
 	"github.com/DSiSc/evm-NG/common"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/evm-NG/common/math"
+	"github.com/DSiSc/evm-NG/constant"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 	"math/big"
@@ -29,9 +29,9 @@ func ExtractParam(input []byte, argTypes ...reflect.Kind) ([]interface{}, error)
 	for i := 0; i < len(argTypes); i++ {
 		switch argTypes[i] {
 		case reflect.String:
-			offset, _ := math.ParseUint64(hexutil.Encode(input[i*evm.EvmWordSize : (i+1)*evm.EvmWordSize]))
-			dataLen, _ := math.ParseUint64(hexutil.Encode(input[offset : offset+evm.EvmWordSize]))
-			argStart := offset + evm.EvmWordSize
+			offset, _ := math.ParseUint64(hexutil.Encode(input[i*constant.EvmWordSize : (i+1)*constant.EvmWordSize]))
+			dataLen, _ := math.ParseUint64(hexutil.Encode(input[offset : offset+constant.EvmWordSize]))
+			argStart := offset + constant.EvmWordSize
 			argEnd := argStart + dataLen
 			arg := string(input[argStart:argEnd])
 			args = append(args, arg)
@@ -46,12 +46,12 @@ func ExtractParam(input []byte, argTypes ...reflect.Kind) ([]interface{}, error)
 func EncodeReturnValue(retVals ...interface{}) ([]byte, error) {
 	retPre := make([]byte, 0)
 	retData := make([]byte, 0)
-	preOffsetPadding := len(retVals) * evm.EvmWordSize
+	preOffsetPadding := len(retVals) * constant.EvmWordSize
 	for _, retVal := range retVals {
 		switch reflect.TypeOf(retVal).Kind() {
 		case reflect.String:
 			offset := preOffsetPadding + len(retData)
-			retPre = append(retPre, math.PaddedBigBytes(big.NewInt(int64(offset)), evm.EvmWordSize)...)
+			retPre = append(retPre, math.PaddedBigBytes(big.NewInt(int64(offset)), constant.EvmWordSize)...)
 			retData = append(retData, encodeString(retVal.(string))...)
 		default:
 			return nil, errors.New("unsupported return type")
@@ -64,13 +64,13 @@ func EncodeReturnValue(retVals ...interface{}) ([]byte, error) {
 func encodeString(val string) []byte {
 	ret := make([]byte, 0)
 	valB := []byte(val)
-	ret = append(ret, math.PaddedBigBytes(big.NewInt(int64(len(valB))), evm.EvmWordSize)...)
+	ret = append(ret, math.PaddedBigBytes(big.NewInt(int64(len(valB))), constant.EvmWordSize)...)
 	for i := 0; i < len(valB); {
-		if (len(valB) - i) > evm.EvmWordSize {
-			ret = append(ret, valB[i:i+evm.EvmWordSize]...)
-			i += evm.EvmWordSize
+		if (len(valB) - i) > constant.EvmWordSize {
+			ret = append(ret, valB[i:i+constant.EvmWordSize]...)
+			i += constant.EvmWordSize
 		} else {
-			ret = append(ret, common.RightPadBytes(valB[i:], evm.EvmWordSize)...)
+			ret = append(ret, common.RightPadBytes(valB[i:], constant.EvmWordSize)...)
 			i += len(valB)
 		}
 	}

@@ -478,8 +478,12 @@ func opReturnDataCopy(pc *uint64, interpreter *EVMInterpreter, contract *Contrac
 
 func opExtCodeSize(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.SetUint64(uint64(interpreter.evm.StateDB.GetCodeSize(util.BigToAddress(slot))))
-
+	addr := util.BigToAddress(slot)
+	if IsSystemContract(addr) {
+		slot.SetUint64(uint64(1))
+	} else {
+		slot.SetUint64(uint64(interpreter.evm.StateDB.GetCodeSize(util.BigToAddress(slot))))
+	}
 	return nil, nil
 }
 
@@ -763,7 +767,16 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.evm.Call(contract, toAddr, args, gas, value)
+
+	var ret []byte
+	var returnGas uint64
+	var err error
+	if IsSystemContract(toAddr) {
+		ret, returnGas, err = sysContractCall(interpreter.evm, contract.self, toAddr, args, gas, value)
+	} else {
+		ret, returnGas, err = interpreter.evm.Call(contract, toAddr, args, gas, value)
+	}
+
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -965,4 +978,11 @@ func makeSwap(size int64) executionFunc {
 		stack.swap(int(size))
 		return nil, nil
 	}
+}
+
+// execute system contract
+func sysContractCall(evm *EVM, caller ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	sysContractExecutionFunc := GetSystemContractExecFunc(addr)
+	ret, err = sysContractExecutionFunc(evm, caller, input)
+	return ret, gas, err
 }

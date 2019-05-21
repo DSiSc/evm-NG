@@ -1,10 +1,10 @@
-package buffer
+package evm
 
 import (
 	"fmt"
 	"github.com/DSiSc/craft/types"
-	"github.com/DSiSc/evm-NG"
 	"github.com/DSiSc/evm-NG/common/hexutil"
+	"github.com/DSiSc/evm-NG/util"
 	"github.com/DSiSc/monkey"
 	"github.com/stretchr/testify/assert"
 	"math/big"
@@ -14,7 +14,8 @@ import (
 
 func mockSolidityBuffer() *SolidityBuffer {
 	return &SolidityBuffer{
-		evm: &evm.EVM{},
+		evm:            &EVM{},
+		callerContract: AccountRef(util.HexToAddress("0x8a8c58e424f4a6d2f0b2270860c96dfe34f10c78")),
 	}
 }
 
@@ -26,7 +27,7 @@ func TestSolidityBuffer_Read(t *testing.T) {
 	acctualInputStr := ""
 	expectRet, _ := hexutil.Decode("0x111111")
 	solidityBuffer := mockSolidityBuffer()
-	monkey.PatchInstanceMethod(reflect.TypeOf(solidityBuffer.evm), "Call", func(vm *evm.EVM, caller evm.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(solidityBuffer.evm), "Call", func(vm *EVM, caller ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 		acctualInputStr = fmt.Sprintf("%x", input)
 		ret, _ = hexutil.Decode("0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000031111110000000000000000000000000000000000000000000000000000000000")
 		return ret, 0, nil
@@ -44,7 +45,7 @@ func TestSolidityBuffer_Write(t *testing.T) {
 	acctualInputStr := ""
 	data, _ := hexutil.Decode("0x11")
 	solidityBuffer := mockSolidityBuffer()
-	monkey.PatchInstanceMethod(reflect.TypeOf(solidityBuffer.evm), "Call", func(vm *evm.EVM, caller evm.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(solidityBuffer.evm), "Call", func(vm *EVM, caller ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 		acctualInputStr = fmt.Sprintf("%x", input)
 		return nil, 0, nil
 	})
@@ -59,7 +60,7 @@ func TestSolidityBuffer_Close(t *testing.T) {
 	expectInputStr := "43d726d6"
 	acctualInputStr := ""
 	solidityBuffer := mockSolidityBuffer()
-	monkey.PatchInstanceMethod(reflect.TypeOf(solidityBuffer.evm), "Call", func(vm *evm.EVM, caller evm.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(solidityBuffer.evm), "Call", func(vm *EVM, caller ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 		acctualInputStr = fmt.Sprintf("%x", input)
 		fmt.Println(acctualInputStr)
 		return nil, 0, nil

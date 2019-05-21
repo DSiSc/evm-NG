@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"github.com/DSiSc/evm-NG"
-	"github.com/DSiSc/evm-NG/system/contract/buffer"
+	"github.com/DSiSc/evm-NG/constant"
 	"github.com/DSiSc/evm-NG/system/contract/util"
 	"github.com/pkg/errors"
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -17,25 +16,17 @@ import (
 )
 
 var (
-	getObjectMethodHash = string(util.Hash([]byte("GetObject(string,string)")))
-	putObjectMethodHash = string(util.Hash([]byte("GetObject(string,string)")))
+	getObjectMethodHash = string(util.ExtractMethodHash(util.Hash([]byte("GetObject(string,string)"))))
+	putObjectMethodHash = string(util.ExtractMethodHash(util.Hash([]byte("PutObject(string,string)"))))
 )
 
-func init() {
-	evm.RegisterRoutes(evm.TencentCosAddr, func(execEvm *evm.EVM, caller evm.ContractRef, input []byte) ([]byte, error) {
-		solidityBuffer := buffer.NewSolidityBuffer(execEvm, caller)
-		tencentCos := NewTencentCosContract(solidityBuffer)
-		return execute(tencentCos, input)
-	})
-}
-
 // execute the cos contract
-func execute(cos *TencentCosContract, input []byte) ([]byte, error) {
+func CosExecute(cos *TencentCosContract, input []byte) ([]byte, error) {
 	methodHash := util.ExtractMethodHash(input)
 	switch string(methodHash) {
 	case getObjectMethodHash:
 		args, err := util.ExtractParam(input[len(methodHash):], reflect.String, reflect.String)
-		if err != nil {
+		if err != nil || len(args) < 2 {
 			return nil, err
 		}
 		err = cos.GetObject(args[0].(string), args[1].(string))
@@ -106,17 +97,19 @@ func (this *TencentCosContract) GetObject(rawurl, name string) error {
 		return err
 	}
 
-	bufferBytes := make([]byte, buffer.MaxReadWriteSize)
+	bufferBytes := make([]byte, constant.BufferMaxReadWriteSize)
 	for {
 		nr, err := resp.Body.Read(bufferBytes)
+		if nr > 0 {
+			nw, err := this.rw.Write(bufferBytes[:nr])
+			if err != nil || nw < nr {
+				return err
+			}
+		}
 		if err == io.EOF {
 			return nil
 		}
-		if err != nil || nr <= 0 {
-			return err
-		}
-		nw, err := this.rw.Write(bufferBytes[:nr])
-		if err != nil || nw < nr {
+		if err != nil {
 			return err
 		}
 	}
