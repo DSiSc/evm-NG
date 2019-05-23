@@ -25,20 +25,24 @@ func CosExecute(cos *TencentCosContract, input []byte) ([]byte, error) {
 	methodHash := util.ExtractMethodHash(input)
 	switch string(methodHash) {
 	case getObjectMethodHash:
-		args, err := util.ExtractParam(input[len(methodHash):], reflect.String, reflect.String)
-		if err != nil || len(args) < 2 {
+		rawUrl := new(string)
+		objName := new(string)
+		err := util.ExtractParam(input[len(methodHash):], rawUrl, objName)
+		if err != nil {
 			return nil, err
 		}
-		err = cos.GetObject(args[0].(string), args[1].(string))
+		err = cos.GetObject(*rawUrl, *objName)
 		if err != nil {
 			return nil, err
 		}
 	case putObjectMethodHash:
-		args, err := util.ExtractParam(input[len(methodHash):], reflect.String, reflect.String)
+		rawUrl := new(string)
+		objName := new(string)
+		err := util.ExtractParam(input[len(methodHash):], rawUrl, objName)
 		if err != nil {
 			return nil, err
 		}
-		objMeta, err := cos.PutObject(args[0].(string), args[1].(string))
+		objMeta, err := cos.PutObject(*rawUrl, *objName)
 		if err != nil {
 			return nil, err
 		}

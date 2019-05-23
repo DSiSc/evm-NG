@@ -11,6 +11,11 @@ import (
 	"reflect"
 )
 
+var (
+	UnSupportedTypeError  = errors.New("unsupported arg type")
+	InvalidUnmarshalError = errors.New("invalid unmarshal error")
+)
+
 // ExtractMethodHash extract method hash from input
 func ExtractMethodHash(input []byte) []byte {
 	return input[:4]
@@ -24,22 +29,36 @@ func Hash(data []byte) []byte {
 }
 
 // ExtractParam extract string params from input
-func ExtractParam(input []byte, argTypes ...reflect.Kind) ([]interface{}, error) {
-	args := make([]interface{}, 0)
-	for i := 0; i < len(argTypes); i++ {
-		switch argTypes[i] {
+func ExtractParam(input []byte, args ...interface{}) error {
+	for i := 0; i < len(args); i++ {
+		rv := reflect.ValueOf(args[i])
+		if rv.Kind() != reflect.Ptr || rv.IsNil() {
+			return InvalidUnmarshalError
+		}
+		switch rv.Elem().Type().Kind() {
 		case reflect.String:
-			offset, _ := math.ParseUint64(hexutil.Encode(input[i*constant.EvmWordSize : (i+1)*constant.EvmWordSize]))
-			dataLen, _ := math.ParseUint64(hexutil.Encode(input[offset : offset+constant.EvmWordSize]))
-			argStart := offset + constant.EvmWordSize
-			argEnd := argStart + dataLen
-			arg := string(input[argStart:argEnd])
-			args = append(args, arg)
+			arg := string(extractDynamicTypeData(input, i))
+			rv.Elem().SetString(arg)
+		case reflect.Slice:
+			if reflect.Uint8 != rv.Elem().Type().Elem().Kind() {
+				return UnSupportedTypeError
+			}
+			arg := extractDynamicTypeData(input, i)
+			rv.Elem().SetBytes(arg)
 		default:
-			return nil, errors.New("unsupported arg type")
+			return UnSupportedTypeError
 		}
 	}
-	return args, nil
+	return nil
+}
+
+// extract dynamic type data
+func extractDynamicTypeData(totalInput []byte, varIndex int) []byte {
+	offset, _ := math.ParseUint64(hexutil.Encode(totalInput[varIndex*constant.EvmWordSize : (varIndex+1)*constant.EvmWordSize]))
+	dataLen, _ := math.ParseUint64(hexutil.Encode(totalInput[offset : offset+constant.EvmWordSize]))
+	argStart := offset + constant.EvmWordSize
+	argEnd := argStart + dataLen
+	return totalInput[argStart:argEnd]
 }
 
 // EncodeReturnValue encode the return value to the format needed by evm
@@ -48,11 +67,19 @@ func EncodeReturnValue(retVals ...interface{}) ([]byte, error) {
 	retData := make([]byte, 0)
 	preOffsetPadding := len(retVals) * constant.EvmWordSize
 	for _, retVal := range retVals {
-		switch reflect.TypeOf(retVal).Kind() {
+		retType := reflect.TypeOf(retVal)
+		switch retType.Kind() {
 		case reflect.String:
 			offset := preOffsetPadding + len(retData)
 			retPre = append(retPre, math.PaddedBigBytes(big.NewInt(int64(offset)), constant.EvmWordSize)...)
 			retData = append(retData, encodeString(retVal.(string))...)
+		case reflect.Slice:
+			if reflect.Uint8 != retType.Elem().Kind() {
+				return nil, UnSupportedTypeError
+			}
+			offset := preOffsetPadding + len(retData)
+			retPre = append(retPre, math.PaddedBigBytes(big.NewInt(int64(offset)), constant.EvmWordSize)...)
+			retData = append(retData, encodeBytes(retVal.([]byte))...)
 		default:
 			return nil, errors.New("unsupported return type")
 		}
@@ -62,16 +89,20 @@ func EncodeReturnValue(retVals ...interface{}) ([]byte, error) {
 
 // encode the string to the format needed by evm
 func encodeString(val string) []byte {
+	return encodeBytes([]byte(val))
+}
+
+// encode the byte array to the format needed by evm
+func encodeBytes(val []byte) []byte {
 	ret := make([]byte, 0)
-	valB := []byte(val)
-	ret = append(ret, math.PaddedBigBytes(big.NewInt(int64(len(valB))), constant.EvmWordSize)...)
-	for i := 0; i < len(valB); {
-		if (len(valB) - i) > constant.EvmWordSize {
-			ret = append(ret, valB[i:i+constant.EvmWordSize]...)
+	ret = append(ret, math.PaddedBigBytes(big.NewInt(int64(len(val))), constant.EvmWordSize)...)
+	for i := 0; i < len(val); {
+		if (len(val) - i) > constant.EvmWordSize {
+			ret = append(ret, val[i:i+constant.EvmWordSize]...)
 			i += constant.EvmWordSize
 		} else {
-			ret = append(ret, common.RightPadBytes(valB[i:], constant.EvmWordSize)...)
-			i += len(valB)
+			ret = append(ret, common.RightPadBytes(val[i:], constant.EvmWordSize)...)
+			i += len(val)
 		}
 	}
 	return ret
