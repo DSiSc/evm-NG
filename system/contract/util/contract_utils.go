@@ -11,6 +11,8 @@ import (
 	"reflect"
 )
 
+const HashLenght = 32
+
 var (
 	UnSupportedTypeError  = errors.New("unsupported arg type")
 	InvalidUnmarshalError = errors.New("invalid unmarshal error")
