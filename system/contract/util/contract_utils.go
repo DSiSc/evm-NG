@@ -45,6 +45,9 @@ func ExtractParam(input []byte, args ...interface{}) error {
 			}
 			arg := extractDynamicTypeData(input, i)
 			rv.Elem().SetBytes(arg)
+		case reflect.Uint64:
+			arg, _ := math.ParseUint64(hexutil.Encode(input[i*constant.EvmWordSize : (i+1)*constant.EvmWordSize]))
+			rv.Elem().SetUint(arg)
 		default:
 			return UnSupportedTypeError
 		}
@@ -80,6 +83,8 @@ func EncodeReturnValue(retVals ...interface{}) ([]byte, error) {
 			offset := preOffsetPadding + len(retData)
 			retPre = append(retPre, math.PaddedBigBytes(big.NewInt(int64(offset)), constant.EvmWordSize)...)
 			retData = append(retData, encodeBytes(retVal.([]byte))...)
+		case reflect.Uint64:
+			retPre = append(retPre, math.PaddedBigBytes(big.NewInt(0).SetUint64(retVal.(uint64)), constant.EvmWordSize)...)
 		default:
 			return nil, errors.New("unsupported return type")
 		}

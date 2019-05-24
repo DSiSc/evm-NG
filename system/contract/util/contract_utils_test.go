@@ -48,6 +48,16 @@ func TestExtractParam2(t *testing.T) {
 	assert.Equal(expectedParam2, arg2)
 }
 
+func TestExtractParam3(t *testing.T) {
+	assert := assert.New(t)
+	arg1 := uint64(2)
+	expectedParam1 := uint64(2)
+	input, _ := hexutil.Decode("0xe05e91e00000000000000000000000000000000000000000000000000000000000000002")
+	err := ExtractParam(input[4:], &arg1)
+	assert.Nil(err)
+	assert.Equal(expectedParam1, arg1)
+}
+
 func TestEncodeReturnValue(t *testing.T) {
 	assert := assert.New(t)
 	retVal1 := "a"
@@ -64,6 +74,15 @@ func TestEncodeReturnValue2(t *testing.T) {
 	retVal2 := []byte("b")
 	expect, _ := hexutil.Decode("0x000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000001610000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000016200000000000000000000000000000000000000000000000000000000000000")
 	retB, err := EncodeReturnValue(retVal1, retVal2)
+	assert.Nil(err)
+	assert.Equal(expect, retB)
+}
+
+func TestEncodeReturnValue3(t *testing.T) {
+	assert := assert.New(t)
+	retVal1 := uint64(2)
+	expect, _ := hexutil.Decode("0x0000000000000000000000000000000000000000000000000000000000000002")
+	retB, err := EncodeReturnValue(retVal1)
 	assert.Nil(err)
 	assert.Equal(expect, retB)
 }
