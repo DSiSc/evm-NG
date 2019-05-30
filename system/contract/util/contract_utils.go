@@ -1,6 +1,7 @@
 package util
 
 import (
+	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/common"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/evm-NG/common/math"
@@ -87,6 +88,11 @@ func EncodeReturnValue(retVals ...interface{}) ([]byte, error) {
 			retData = append(retData, encodeBytes(retVal.([]byte))...)
 		case reflect.Uint64:
 			retPre = append(retPre, math.PaddedBigBytes(big.NewInt(0).SetUint64(retVal.(uint64)), constant.EvmWordSize)...)
+		case reflect.Array:
+			if retType.AssignableTo(reflect.TypeOf(types.Address{})) {
+				addr := retVal.(types.Address)
+				retPre = append(retPre, common.LeftPadBytes(addr[:], constant.EvmWordSize)...)
+			}
 		default:
 			return nil, errors.New("unsupported return type")
 		}

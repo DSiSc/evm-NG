@@ -1,6 +1,7 @@
 package util
 
 import (
+	"github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -83,6 +84,15 @@ func TestEncodeReturnValue3(t *testing.T) {
 	retVal1 := uint64(2)
 	expect, _ := hexutil.Decode("0x0000000000000000000000000000000000000000000000000000000000000002")
 	retB, err := EncodeReturnValue(retVal1)
+	assert.Nil(err)
+	assert.Equal(expect, retB)
+}
+
+func TestEncodeReturnValue4(t *testing.T) {
+	assert := assert.New(t)
+	addr := util.HexToAddress("0000000000000000000000000000000000011110")
+	expect, _ := hexutil.Decode("0x0000000000000000000000000000000000000000000000000000000000011110")
+	retB, err := EncodeReturnValue(addr)
 	assert.Nil(err)
 	assert.Equal(expect, retB)
 }
