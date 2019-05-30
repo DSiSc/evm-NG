@@ -49,6 +49,58 @@ func TestBufferExecute1(t *testing.T) {
 	bc := NewSystemBufferContract(db)
 	assert.NotNil(bc)
 
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+		return nil, nil
+	})
+	input, _ := hexutil.Decode("0xc35789cc")
+	_, err := BufferExecute(bc, input)
+	assert.Nil(err)
+
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+		val := make([]byte, 8)
+		binary.BigEndian.PutUint64(val, uint64(1))
+		return val, nil
+	})
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Delete", func(chain *blockchain.BlockChain, key []byte) error {
+		return nil
+	})
+	_, err = BufferExecute(bc, input)
+	assert.Nil(err)
+}
+
+func TestBufferExecute2(t *testing.T) {
+	defer monkey.UnpatchAll()
+	assert := assert.New(t)
+	db := &blockchain.BlockChain{}
+	bc := NewSystemBufferContract(db)
+	assert.NotNil(bc)
+	input, _ := hexutil.Decode("0x82172882")
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+		return nil, nil
+	})
+	expectRet, _ := hexutil.Decode("0x0000000000000000000000000000000000000000000000000000000000000000")
+	ret, err := BufferExecute(bc, input)
+	assert.Nil(err)
+	assert.Equal(expectRet, ret)
+
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+		val := make([]byte, 8)
+		binary.BigEndian.PutUint64(val, uint64(1))
+		return val, nil
+	})
+	expectRet, _ = hexutil.Decode("0x0000000000000000000000000000000000000000000000000000000000000001")
+	ret, err = BufferExecute(bc, input)
+	assert.Nil(err)
+	assert.Equal(expectRet, ret)
+}
+
+func TestBufferExecute3(t *testing.T) {
+	defer monkey.UnpatchAll()
+	assert := assert.New(t)
+	db := &blockchain.BlockChain{}
+	bc := NewSystemBufferContract(db)
+	assert.NotNil(bc)
+
 	var data []byte
 	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
 		if !bytes.Equal([]byte(systemBufferCacheKey), key) {

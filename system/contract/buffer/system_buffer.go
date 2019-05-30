@@ -22,6 +22,8 @@ var (
 	systemBufferCacheStart = util.Hash([]byte(systemBufferCacheKey))
 	readMethodHash         = string(util.ExtractMethodHash(util.Hash([]byte("Read(uint64,uint64)"))))
 	writeMethodHash        = string(util.ExtractMethodHash(util.Hash([]byte("Write(bytes)"))))
+	lengthMethodHash       = string(util.ExtractMethodHash(util.Hash([]byte("Length()"))))
+	closeMethodHash        = string(util.ExtractMethodHash(util.Hash([]byte("Close()"))))
 )
 
 // execute the system buffer contract
@@ -58,6 +60,12 @@ func BufferExecute(sysBuffer *SystemBufferContract, input []byte) ([]byte, error
 			return nil, err
 		}
 		return retData, nil
+	case lengthMethodHash:
+		len := sysBuffer.Length()
+		return util.EncodeReturnValue(len)
+	case closeMethodHash:
+		err := sysBuffer.Close()
+		return nil, err
 	default:
 		return nil, errors.New("unknown method")
 	}
