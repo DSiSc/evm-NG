@@ -20,6 +20,7 @@ func TestNewSystemBufferContract(t *testing.T) {
 }
 
 func TestBufferExecute(t *testing.T) {
+	defer monkey.UnpatchAll()
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
 	bc := NewSystemBufferContract(db)
@@ -42,6 +43,7 @@ func TestBufferExecute(t *testing.T) {
 }
 
 func TestBufferExecute1(t *testing.T) {
+	defer monkey.UnpatchAll()
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
 	bc := NewSystemBufferContract(db)
@@ -65,6 +67,7 @@ func TestBufferExecute1(t *testing.T) {
 }
 
 func TestSystemBufferContract_Read(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
@@ -95,6 +98,7 @@ func TestSystemBufferContract_Read(t *testing.T) {
 }
 
 func TestSystemBufferContract_Write(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
@@ -114,6 +118,7 @@ func TestSystemBufferContract_Write(t *testing.T) {
 }
 
 func TestSystemBufferContract_Read1(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
@@ -140,6 +145,7 @@ func TestSystemBufferContract_Read1(t *testing.T) {
 }
 
 func TestSystemBufferContract_Read2(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
@@ -170,6 +176,7 @@ func TestSystemBufferContract_Read2(t *testing.T) {
 }
 
 func TestSystemBufferContract_Write1(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
@@ -189,6 +196,7 @@ func TestSystemBufferContract_Write1(t *testing.T) {
 }
 
 func TestSystemBufferContract_Write2(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
@@ -215,6 +223,7 @@ func TestSystemBufferContract_Write2(t *testing.T) {
 }
 
 func TestSystemBufferContract_Length(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}
@@ -246,6 +255,7 @@ func TestSystemBufferContract_Length(t *testing.T) {
 }
 
 func TestSystemBufferContract_Delete(t *testing.T) {
+	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
 	db := &blockchain.BlockChain{}

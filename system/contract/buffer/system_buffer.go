@@ -169,7 +169,7 @@ func (this *SystemBufferContract) Close() error {
 		return err
 	}
 
-	for i := 0; uint64(i) <= (cacheLen / truncSize); i ++ {
+	for i := 0; uint64(i) <= (cacheLen / truncSize); i++ {
 		key := getKey(int64(i))
 		this.db.Delete(key)
 	}
