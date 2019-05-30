@@ -4,10 +4,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/DSiSc/blockchain"
+	"github.com/DSiSc/craft/types"
+	cutil "github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/system/contract/util"
 	"math/big"
 )
+
+var SystemBufferAddr = cutil.HexToAddress("0000000000000000000000000000000000011111")
 
 const (
 	systemBufferCacheKey = "SystemBufferCacheKey"
@@ -174,6 +178,10 @@ func (this *SystemBufferContract) Close() error {
 		this.db.Delete(key)
 	}
 	return nil
+}
+
+func (this *SystemBufferContract) Address() types.Address {
+	return SystemBufferAddr
 }
 
 // get db key based on the offset

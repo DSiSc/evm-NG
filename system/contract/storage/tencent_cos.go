@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"github.com/DSiSc/craft/types"
+	cutil "github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/constant"
+	"github.com/DSiSc/evm-NG/system/contract/buffer"
 	"github.com/DSiSc/evm-NG/system/contract/util"
 	"github.com/pkg/errors"
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -14,6 +17,8 @@ import (
 	"net/url"
 	"reflect"
 )
+
+var TencentCosAddr = cutil.HexToAddress("0000000000000000000000000000000000011110")
 
 var (
 	getObjectMethodHash = string(util.ExtractMethodHash(util.Hash([]byte("GetObject(string,string)"))))
@@ -31,10 +36,11 @@ func CosExecute(cos *TencentCosContract, input []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = cos.GetObject(*rawUrl, *objName)
+		bufferAddr, err := cos.GetObject(*rawUrl, *objName)
 		if err != nil {
 			return nil, err
 		}
+		return util.EncodeReturnValue(bufferAddr)
 	case putObjectMethodHash:
 		rawUrl := new(string)
 		objName := new(string)
@@ -54,7 +60,6 @@ func CosExecute(cos *TencentCosContract, input []byte) ([]byte, error) {
 	default:
 		return nil, errors.New("unknown method")
 	}
-	return nil, nil
 }
 
 //Cos response error
@@ -75,58 +80,58 @@ type ObjectMeta struct {
 
 // TencentCosContract `tencent cloud object storage` system contract
 type TencentCosContract struct {
-	rw io.ReadWriter
+	sysBufferRW *buffer.SystemBufferReadWriterCloser
 }
 
 // create a new instance
-func NewTencentCosContract(rw io.ReadWriter) *TencentCosContract {
+func NewTencentCosContract(rw *buffer.SystemBufferReadWriterCloser) *TencentCosContract {
 	return &TencentCosContract{
-		rw: rw,
+		sysBufferRW: rw,
 	}
 }
 
-// GetObject download an object from the cloud server to `rw`
-func (this *TencentCosContract) GetObject(rawurl, name string) error {
+// GetObject download an object from the cloud server to `sysBufferRW`
+func (this *TencentCosContract) GetObject(rawurl, name string) (types.Address, error) {
 	client, err := buildCosClient(rawurl)
 	if err != nil {
-		return err
+		return types.Address{}, err
 	}
 
 	resp, err := client.Object.Get(context.Background(), name, nil)
 	if err != nil {
-		return err
+		return types.Address{}, err
 	}
 	defer resp.Body.Close()
 	if err = checkResponse(resp); err != nil {
-		return err
+		return types.Address{}, err
 	}
 
 	bufferBytes := make([]byte, constant.BufferMaxReadWriteSize)
 	for {
 		nr, err := resp.Body.Read(bufferBytes)
 		if nr > 0 {
-			nw, err := this.rw.Write(bufferBytes[:nr])
+			nw, err := this.sysBufferRW.Write(bufferBytes[:nr])
 			if err != nil || nw < nr {
-				return err
+				return types.Address{}, err
 			}
 		}
 		if err == io.EOF {
-			return nil
+			return this.sysBufferRW.ContractAddress(), nil
 		}
 		if err != nil {
-			return err
+			return types.Address{}, err
 		}
 	}
 }
 
-// PutObject upload an object(stored in `rw`) to cloud server
+// PutObject upload an object(stored in `sysBufferRW`) to cloud server
 func (this *TencentCosContract) PutObject(rawurl, name string) (*ObjectMeta, error) {
 	client, err := buildCosClient(rawurl)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.Object.Put(context.Background(), name, this.rw, nil)
+	resp, err := client.Object.Put(context.Background(), name, this.sysBufferRW, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +142,10 @@ func (this *TencentCosContract) PutObject(rawurl, name string) (*ObjectMeta, err
 
 	objMeta := getObjectMeta(resp.Header)
 	return objMeta, err
+}
+
+func (this *TencentCosContract) Address() types.Address {
+	return TencentCosAddr
 }
 
 // build cos client with specified url

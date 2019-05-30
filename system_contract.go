@@ -2,13 +2,8 @@ package evm
 
 import (
 	"github.com/DSiSc/craft/types"
-	"github.com/DSiSc/crypto-suite/util"
+	"github.com/DSiSc/evm-NG/system/contract/buffer"
 	"github.com/DSiSc/evm-NG/system/contract/storage"
-)
-
-//system contract address
-var (
-	TencentCosAddr = util.HexToAddress("0000000000000000000000000000000000011111")
 )
 
 // SysContractExecutionFunc system contract execute function
@@ -18,9 +13,15 @@ type SysContractExecutionFunc func(interpreter *EVM, contract ContractRef, input
 var routes = make(map[types.Address]SysContractExecutionFunc)
 
 func init() {
-	routes[TencentCosAddr] = func(execEvm *EVM, caller ContractRef, input []byte) ([]byte, error) {
-		solidityBuffer := NewSolidityBuffer(execEvm, caller)
-		tencentCos := storage.NewTencentCosContract(solidityBuffer)
+	routes[buffer.SystemBufferAddr] = func(execEvm *EVM, contract ContractRef, input []byte) ([]byte, error) {
+		systemBuffer := buffer.NewSystemBufferContract(execEvm.StateDB)
+		return buffer.BufferExecute(systemBuffer, input)
+	}
+
+	routes[storage.TencentCosAddr] = func(execEvm *EVM, caller ContractRef, input []byte) ([]byte, error) {
+		systemBuffer := buffer.NewSystemBufferContract(execEvm.StateDB)
+		systemBufferReadWriter := buffer.NewSystemBufferReadWriterCloser(systemBuffer)
+		tencentCos := storage.NewTencentCosContract(systemBufferReadWriter)
 		return storage.CosExecute(tencentCos, input)
 	}
 }

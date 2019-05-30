@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"github.com/DSiSc/craft/types"
+	"github.com/DSiSc/evm-NG/system/contract/buffer"
 	"github.com/DSiSc/monkey"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -23,8 +25,19 @@ const (
 )
 
 func mockTencentCosContract() *TencentCosContract {
+	bytesBuffer := bytes.NewBufferString("")
+	sysBufferRW := &buffer.SystemBufferReadWriterCloser{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(sysBufferRW), "Read", func(brw *buffer.SystemBufferReadWriterCloser, p []byte) (n int, err error) {
+		return bytesBuffer.Read(p)
+	})
+	monkey.PatchInstanceMethod(reflect.TypeOf(sysBufferRW), "Write", func(brw *buffer.SystemBufferReadWriterCloser, p []byte) (n int, err error) {
+		return bytesBuffer.Write(p)
+	})
+	monkey.PatchInstanceMethod(reflect.TypeOf(sysBufferRW), "ContractAddress", func(brw *buffer.SystemBufferReadWriterCloser) types.Address {
+		return buffer.SystemBufferAddr
+	})
 	return &TencentCosContract{
-		rw: bytes.NewBuffer(make([]byte, 1024)),
+		sysBufferRW: sysBufferRW,
 	}
 }
 
@@ -65,8 +78,6 @@ func TestGetObject(t *testing.T) {
 	defer monkey.UnpatchAll()
 	assert := assert.New(t)
 	tencentCos := mockTencentCosContract()
-	buf := bytes.NewBufferString("")
-	tencentCos.rw = buf
 	client := mockClient()
 	monkey.Patch(cos.NewClient, func(uri *cos.BaseURL, httpClient *http.Client) *cos.Client {
 		return client
@@ -75,16 +86,16 @@ func TestGetObject(t *testing.T) {
 	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "Get", func(obj *cos.ObjectService, ctx context.Context, name string, opt *cos.ObjectGetOptions, id ...string) (*cos.Response, error) {
 		return response, nil
 	})
-	err := tencentCos.GetObject(rawUrl, objName)
+	_, err := tencentCos.GetObject(rawUrl, objName)
 	assert.Nil(err)
-	obj, _ := ioutil.ReadAll(tencentCos.rw)
+	obj, _ := ioutil.ReadAll(tencentCos.sysBufferRW)
 	assert.Equal([]byte("Hello"), obj)
 
 	response = mockErrorResponse()
 	monkey.PatchInstanceMethod(reflect.TypeOf(client.Object), "Get", func(obj *cos.ObjectService, ctx context.Context, name string, opt *cos.ObjectGetOptions, id ...string) (*cos.Response, error) {
 		return response, nil
 	})
-	err = tencentCos.GetObject(rawUrl, objName)
+	_, err = tencentCos.GetObject(rawUrl, objName)
 	assert.EqualError(err, fmt.Sprintf("response error, Code: %s, Message: %s, Resource: %s, RequestId: %s, TraceId: %s", respError.Code, respError.Message, respError.Resource, respError.RequestId, respError.TraceId))
 }
 
@@ -96,7 +107,7 @@ func TestPutObject(t *testing.T) {
 	}
 	assert := assert.New(t)
 	tencentCos := mockTencentCosContract()
-	tencentCos.rw.Write(objBytes)
+	tencentCos.sysBufferRW.Write(objBytes)
 	client := mockClient()
 	monkey.Patch(cos.NewClient, func(uri *cos.BaseURL, httpClient *http.Client) *cos.Client {
 		return client
@@ -118,4 +129,10 @@ func TestPutObject(t *testing.T) {
 	})
 	_, err = tencentCos.PutObject(rawUrl, objName)
 	assert.EqualError(err, fmt.Sprintf("response error, Code: %s, Message: %s, Resource: %s, RequestId: %s, TraceId: %s", respError.Code, respError.Message, respError.Resource, respError.RequestId, respError.TraceId))
+}
+
+func TestTencentCosContract_Address(t *testing.T) {
+	assert := assert.New(t)
+	tencentCos := mockTencentCosContract()
+	assert.Equal(TencentCosAddr, tencentCos.Address())
 }

@@ -293,3 +293,11 @@ func TestSystemBufferContract_Delete(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(0, len(lowLevelCache))
 }
+
+func TestSystemBufferContract_Address(t *testing.T) {
+	assert := assert.New(t)
+	db := &blockchain.BlockChain{}
+	bc := NewSystemBufferContract(db)
+	assert.NotNil(bc)
+	assert.Equal(SystemBufferAddr, bc.Address())
+}

@@ -1,6 +1,7 @@
 package buffer
 
 import (
+	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/monkey"
 	"github.com/stretchr/testify/assert"
@@ -79,4 +80,16 @@ func TestSystemBufferContract_Close(t *testing.T) {
 		return nil
 	})
 	assert.Nil(sysRWC.Close())
+}
+
+func TestSystemBufferReadWriterCloser_ContractAddress(t *testing.T) {
+	defer monkey.UnpatchAll()
+	assert := assert.New(t)
+	sysRWC := NewSystemBufferReadWriterCloser(mockSystemBuffer())
+	assert.NotNil(sysRWC)
+
+	monkey.PatchInstanceMethod(reflect.TypeOf(sysRWC.sysBufferContract), "Address", func(sysBuffer *SystemBufferContract) types.Address {
+		return SystemBufferAddr
+	})
+	assert.Equal(SystemBufferAddr, sysRWC.ContractAddress())
 }

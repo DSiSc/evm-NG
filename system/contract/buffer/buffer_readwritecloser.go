@@ -1,6 +1,9 @@
 package buffer
 
-import "io"
+import (
+	"github.com/DSiSc/craft/types"
+	"io"
+)
 
 type SystemBufferReadWriterCloser struct {
 	sysBufferContract *SystemBufferContract
@@ -39,4 +42,8 @@ func (this *SystemBufferReadWriterCloser) Write(data []byte) (n int, err error) 
 
 func (this *SystemBufferReadWriterCloser) Close() error {
 	return this.sysBufferContract.Close()
+}
+
+func (this *SystemBufferReadWriterCloser) ContractAddress() types.Address {
+	return this.sysBufferContract.Address()
 }
