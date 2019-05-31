@@ -17,11 +17,11 @@
 package evm
 
 import (
-	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/crypto-suite/crypto"
 	"github.com/DSiSc/evm-NG/params"
 	"github.com/DSiSc/evm-NG/util"
+	"github.com/DSiSc/repository"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -33,9 +33,9 @@ var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 type (
 	// CanTransferFunc is the signature of a transfer guard function
-	CanTransferFunc func(*blockchain.BlockChain, types.Address, *big.Int) bool
+	CanTransferFunc func(*repository.Repository, types.Address, *big.Int) bool
 	// TransferFunc is the signature of a transfer function
-	TransferFunc func(*blockchain.BlockChain, types.Address, types.Address, *big.Int)
+	TransferFunc func(*repository.Repository, types.Address, types.Address, *big.Int)
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) types.Hash
@@ -104,7 +104,7 @@ type EVM struct {
 	// Context provides auxiliary blockchain related information
 	Context
 	// StateDB gives access to the underlying state
-	StateDB *blockchain.BlockChain
+	StateDB *repository.Repository
 	// Depth is the current call stack
 	depth int
 
@@ -130,7 +130,7 @@ type EVM struct {
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
-func NewEVM(ctx Context, statedb *blockchain.BlockChain) *EVM {
+func NewEVM(ctx Context, statedb *repository.Repository) *EVM {
 	chainConfig := params.MainnetChainConfig
 	vmConfig := Config{
 		Debug:                   false,

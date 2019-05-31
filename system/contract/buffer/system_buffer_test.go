@@ -3,9 +3,9 @@ package buffer
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/monkey"
+	"github.com/DSiSc/repository"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
@@ -13,7 +13,7 @@ import (
 
 func TestNewSystemBufferContract(t *testing.T) {
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
+	db := &repository.Repository{}
 	bc := NewSystemBufferContract(db)
 	assert.NotNil(bc)
 
@@ -22,12 +22,12 @@ func TestNewSystemBufferContract(t *testing.T) {
 func TestBufferExecute(t *testing.T) {
 	defer monkey.UnpatchAll()
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
+	db := &repository.Repository{}
 	bc := NewSystemBufferContract(db)
 	assert.NotNil(bc)
 
 	data := []byte{0x11, 0x11, 0x11}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		if bytes.Equal([]byte(systemBufferCacheKey), key) {
 			val := make([]byte, 8)
 			binary.BigEndian.PutUint64(val, 3)
@@ -45,23 +45,23 @@ func TestBufferExecute(t *testing.T) {
 func TestBufferExecute1(t *testing.T) {
 	defer monkey.UnpatchAll()
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
+	db := &repository.Repository{}
 	bc := NewSystemBufferContract(db)
 	assert.NotNil(bc)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return nil, nil
 	})
 	input, _ := hexutil.Decode("0xc35789cc")
 	_, err := BufferExecute(bc, input)
 	assert.Nil(err)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		val := make([]byte, 8)
 		binary.BigEndian.PutUint64(val, uint64(1))
 		return val, nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Delete", func(chain *blockchain.BlockChain, key []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Delete", func(chain *repository.Repository, key []byte) error {
 		return nil
 	})
 	_, err = BufferExecute(bc, input)
@@ -71,11 +71,11 @@ func TestBufferExecute1(t *testing.T) {
 func TestBufferExecute2(t *testing.T) {
 	defer monkey.UnpatchAll()
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
+	db := &repository.Repository{}
 	bc := NewSystemBufferContract(db)
 	assert.NotNil(bc)
 	input, _ := hexutil.Decode("0x82172882")
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return nil, nil
 	})
 	expectRet, _ := hexutil.Decode("0x0000000000000000000000000000000000000000000000000000000000000000")
@@ -83,7 +83,7 @@ func TestBufferExecute2(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(expectRet, ret)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		val := make([]byte, 8)
 		binary.BigEndian.PutUint64(val, uint64(1))
 		return val, nil
@@ -97,18 +97,18 @@ func TestBufferExecute2(t *testing.T) {
 func TestBufferExecute3(t *testing.T) {
 	defer monkey.UnpatchAll()
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
+	db := &repository.Repository{}
 	bc := NewSystemBufferContract(db)
 	assert.NotNil(bc)
 
 	var data []byte
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		if !bytes.Equal([]byte(systemBufferCacheKey), key) {
 			data = value
 		}
 		return nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return nil, nil
 	})
 	input, _ := hexutil.Decode("0x5f10585d000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000031111110000000000000000000000000000000000000000000000000000000000")
@@ -122,11 +122,11 @@ func TestSystemBufferContract_Read(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
@@ -136,7 +136,7 @@ func TestSystemBufferContract_Read(t *testing.T) {
 	assert.NotNil(err)
 
 	data := []byte{0x11, 0x11, 0x11}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		if bytes.Equal([]byte(systemBufferCacheKey), key) {
 			val := make([]byte, 8)
 			binary.BigEndian.PutUint64(val, 3)
@@ -153,11 +153,11 @@ func TestSystemBufferContract_Write(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
@@ -173,11 +173,11 @@ func TestSystemBufferContract_Read1(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
@@ -200,11 +200,11 @@ func TestSystemBufferContract_Read2(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
@@ -231,11 +231,11 @@ func TestSystemBufferContract_Write1(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
@@ -251,11 +251,11 @@ func TestSystemBufferContract_Write2(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
@@ -278,11 +278,11 @@ func TestSystemBufferContract_Length(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
@@ -310,15 +310,15 @@ func TestSystemBufferContract_Delete(t *testing.T) {
 	defer monkey.UnpatchAll()
 	lowLevelCache := make(map[string][]byte)
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *blockchain.BlockChain, key []byte) ([]byte, error) {
+	db := &repository.Repository{}
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Get", func(chain *repository.Repository, key []byte) ([]byte, error) {
 		return lowLevelCache[string(key)], nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *blockchain.BlockChain, key []byte, value []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Put", func(chain *repository.Repository, key []byte, value []byte) error {
 		lowLevelCache[string(key)] = value
 		return nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Delete", func(chain *blockchain.BlockChain, key []byte) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Delete", func(chain *repository.Repository, key []byte) error {
 		delete(lowLevelCache, string(key))
 		return nil
 	})
@@ -348,7 +348,7 @@ func TestSystemBufferContract_Delete(t *testing.T) {
 
 func TestSystemBufferContract_Address(t *testing.T) {
 	assert := assert.New(t)
-	db := &blockchain.BlockChain{}
+	db := &repository.Repository{}
 	bc := NewSystemBufferContract(db)
 	assert.NotNil(bc)
 	assert.Equal(SystemBufferAddr, bc.Address())

@@ -19,14 +19,14 @@ package evm
 import (
 	"math/big"
 
-	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/util"
+	"github.com/DSiSc/repository"
 )
 
 // NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(tx types.Transaction, header *types.Header, chain *blockchain.BlockChain, author types.Address) Context {
+func NewEVMContext(tx types.Transaction, header *types.Header, chain *repository.Repository, author types.Address) Context {
 	var beneficiary types.Address
 	if (types.Address{} == author) {
 		// TODO: Initially we specify a zero addressWWW
@@ -50,7 +50,7 @@ func NewEVMContext(tx types.Transaction, header *types.Header, chain *blockchain
 }
 
 // GetHashFn returns a GetHashFunc which retrieves header hashes by number
-func GetHashFn(ref *types.Header, chain *blockchain.BlockChain) func(n uint64) types.Hash {
+func GetHashFn(ref *types.Header, chain *repository.Repository) func(n uint64) types.Hash {
 	var cache map[uint64]types.Hash
 
 	return func(n uint64) types.Hash {
@@ -83,12 +83,12 @@ func GetHashFn(ref *types.Header, chain *blockchain.BlockChain) func(n uint64) t
 
 // CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
-func CanTransfer(db *blockchain.BlockChain, addr types.Address, amount *big.Int) bool {
+func CanTransfer(db *repository.Repository, addr types.Address, amount *big.Int) bool {
 	return db.GetBalance(addr).Cmp(amount) >= 0
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
-func Transfer(db *blockchain.BlockChain, sender, recipient types.Address, amount *big.Int) {
+func Transfer(db *repository.Repository, sender, recipient types.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }

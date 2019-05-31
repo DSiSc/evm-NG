@@ -19,10 +19,10 @@ import (
 	"testing"
 
 	"encoding/hex"
-	"github.com/DSiSc/blockchain"
-	"github.com/DSiSc/blockchain/config"
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/util"
+	"github.com/DSiSc/repository"
+	"github.com/DSiSc/repository/config"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 )
@@ -46,15 +46,15 @@ func mockBlock() *types.Block {
 }
 
 // mock a blockchain.
-func mockPreBlockChain() *blockchain.BlockChain {
+func mockPreBlockChain() *repository.Repository {
 	// init chain
-	blockchain.InitBlockChain(config.BlockChainConfig{
-		PluginName:    blockchain.PLUGIN_MEMDB,
+	repository.InitRepository(config.RepositoryConfig{
+		PluginName:    repository.PLUGIN_MEMDB,
 		StateDataPath: "",
 		BlockDataPath: "",
 	}, &eventCenter{})
 	// create chain instance
-	bc, _ := blockchain.NewLatestStateBlockChain()
+	bc, _ := repository.NewLatestStateRespository()
 
 	//create caller account
 	bc.CreateAccount(callerAddress)
@@ -68,7 +68,7 @@ func mockPreBlockChain() *blockchain.BlockChain {
 }
 
 // mock a evm instance
-func mockEVM(bc *blockchain.BlockChain) *EVM {
+func mockEVM(bc *repository.Repository) *EVM {
 	tx := types.Transaction{
 		Data: types.TxData{
 			From:         &callerAddress,
