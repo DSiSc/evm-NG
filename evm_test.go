@@ -54,7 +54,7 @@ func mockPreBlockChain() *repository.Repository {
 		BlockDataPath: "",
 	}, &eventCenter{})
 	// create chain instance
-	bc, _ := repository.NewLatestStateRespository()
+	bc, _ := repository.NewLatestStateRepository()
 
 	//create caller account
 	bc.CreateAccount(callerAddress)
