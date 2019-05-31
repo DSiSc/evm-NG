@@ -3,11 +3,11 @@ package buffer
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/craft/types"
 	cutil "github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/system/contract/util"
+	"github.com/DSiSc/repository"
 	"math/big"
 )
 
@@ -73,11 +73,11 @@ func BufferExecute(sysBuffer *SystemBufferContract, input []byte) ([]byte, error
 
 // SystemBufferContract used to cache the system contract data
 type SystemBufferContract struct {
-	db *blockchain.BlockChain
+	db *repository.Repository
 }
 
 // NewSystemBufferContract create a SystemBufferContract instance.
-func NewSystemBufferContract(db *blockchain.BlockChain) *SystemBufferContract {
+func NewSystemBufferContract(db *repository.Repository) *SystemBufferContract {
 	return &SystemBufferContract{
 		db: db,
 	}

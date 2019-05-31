@@ -17,9 +17,9 @@
 package evm
 
 import (
-	"github.com/DSiSc/blockchain"
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/util"
+	"github.com/DSiSc/repository"
 	"math/big"
 	"testing"
 )
@@ -42,7 +42,7 @@ func (d *dummyContractRef) SetNonce(uint64)            {}
 func (d *dummyContractRef) Balance() *big.Int          { return new(big.Int) }
 
 type dummyStatedb struct {
-	blockchain.BlockChain
+	repository.Repository
 }
 
 func (*dummyStatedb) GetRefund() uint64 { return 1337 }
