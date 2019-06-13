@@ -34,6 +34,18 @@ func init() {
 	})
 }
 
+func Method1(name string, age uint64) {
+
+}
+
+func TestRegister(t *testing.T) {
+	assert := assert.New(t)
+	err := Register("Method1", NewRPCFunc(Method1))
+	assert.Nil(err)
+	methodHash := util.Hash([]byte("Method1(string,uint64)"))[:4]
+	assert.NotNil(routes[string(methodHash)])
+}
+
 func TestNewRPCFunc(t *testing.T) {
 	assert := assert.New(t)
 	f := func(name string, age uint64) (error, string) {

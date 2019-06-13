@@ -3,6 +3,7 @@ package evm
 import (
 	"github.com/DSiSc/craft/types"
 	"github.com/DSiSc/evm-NG/system/contract/buffer"
+	"github.com/DSiSc/evm-NG/system/contract/rpc"
 	"github.com/DSiSc/evm-NG/system/contract/storage"
 )
 
@@ -23,6 +24,10 @@ func init() {
 		systemBufferReadWriter := buffer.NewSystemBufferReadWriterCloser(systemBuffer)
 		tencentCos := storage.NewTencentCosContract(systemBufferReadWriter)
 		return storage.CosExecute(tencentCos, input)
+	}
+
+	routes[rpc.RpcContractAddr] = func(execEvm *EVM, caller ContractRef, input []byte) ([]byte, error) {
+		return rpc.Handler(input)
 	}
 }
 
