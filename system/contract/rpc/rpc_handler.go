@@ -3,12 +3,38 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	cutil "github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/system/contract/util"
 	"reflect"
 )
 
+var RpcContractAddr = cutil.HexToAddress("0000000000000000000000000000000000011101")
+
 // rpc routes
 var routes = map[string]*RPCFunc{}
+
+// Register register a rpc route
+func Register(methodName string, f *RPCFunc) error {
+	paramStr := ""
+	for _, arg := range f.args {
+		switch arg.Kind() {
+		case reflect.Uint64:
+			paramStr += "uint64,"
+		case reflect.String:
+			paramStr += "string,"
+		case reflect.Slice:
+			if reflect.Uint8 != arg.Elem().Kind() {
+				return errors.New("unsupported arg type")
+			}
+		}
+	}
+	if len(paramStr) > 0 {
+		paramStr = paramStr[:len(paramStr)-1]
+	}
+	methodHash := util.Hash([]byte(methodName + "(" + paramStr + ")"))[:4]
+	routes[string(methodHash)] = f
+	return nil
+}
 
 func Handler(input []byte) ([]byte, error) {
 	method := util.ExtractMethodHash(input)
