@@ -1,17 +1,40 @@
 package rpc
 
 import (
-	"errors"
 	"fmt"
+	"errors"
 	cutil "github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/system/contract/util"
+	"github.com/DSiSc/craft/log"
 	"reflect"
+	"github.com/DSiSc/evm-NG/system/contract/Interaction"
 )
 
 var RpcContractAddr = cutil.HexToAddress("0000000000000000000000000000000000011101")
 
 // rpc routes
-var routes = map[string]*RPCFunc{}
+var routes = map[string]*RPCFunc{
+	string(util.ExtractMethodHash(util.Hash([]byte("ForwardFunds(string,uint64,string)")))): NewRPCFunc(ForwardFunds),
+	string(util.ExtractMethodHash(util.Hash([]byte("GetTxState(string,string)")))): NewRPCFunc(GetTxState),
+}
+
+func ForwardFunds(toAddr string, amount uint64, chainFlag string) (error, []byte, uint64) {
+	log.Info("forwardFunds--->caohaitao string, uint64, string", toAddr, amount, chainFlag)
+	from := RpcContractAddr
+	to := cutil.HexToAddress(toAddr)
+	hash, err := Interaction.CallCrossRawTransactionReq(from, to, amount, chainFlag)
+	if err != nil {
+		return err, []byte{}, 0
+	}
+
+	fmt.Printf("haitao hash : %x\n", hash)
+	return err, cutil.HashToBytes(hash), 0
+}
+
+// GetCross Tx state
+func GetTxState(txHash string, chainFlag string) (error, uint64){
+	return nil, 0
+}
 
 // Register register a rpc route
 func Register(methodName string, f *RPCFunc) error {

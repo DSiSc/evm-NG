@@ -1,6 +1,8 @@
 package contract
 
-import "github.com/DSiSc/craft/types"
+import (
+	"github.com/DSiSc/craft/types"
+)
 
 // SystemContract represent system internal contract
 type SystemContract interface {
