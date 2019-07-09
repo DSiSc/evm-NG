@@ -113,7 +113,7 @@ func gasReturnDataCopy(gt params.GasTable, evm *EVM, contract *Contract, stack *
 func gasSStore(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var (
 		y, x    = stack.Back(1), stack.Back(0)
-		current = evm.StateDB.GetState(contract.Address(), util.BigToHash(x))
+		current = evm.StateDB.GetHashTypeState(contract.Address(), util.BigToHash(x))
 	)
 	// The legacy gas metering only takes into consideration the current state
 	// Legacy rules should be applied if we are in Petersburg (removal of EIP-1283)
@@ -152,7 +152,7 @@ func gasSStore(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, m
 	if current == value { // noop (1)
 		return params.NetSstoreNoopGas, nil
 	}
-	original := evm.StateDB.GetCommittedState(contract.Address(), util.BigToHash(x))
+	original := evm.StateDB.GetCommittedHashTypeState(contract.Address(), util.BigToHash(x))
 	if original == current {
 		if original == (types.Hash{}) { // create slot (2.1.1)
 			return params.NetSstoreInitGas, nil
