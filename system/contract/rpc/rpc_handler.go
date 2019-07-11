@@ -1,13 +1,14 @@
 package rpc
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	cutil "github.com/DSiSc/crypto-suite/util"
-	"github.com/DSiSc/evm-NG/system/contract/util"
-	"github.com/DSiSc/craft/log"
-	"reflect"
 	"github.com/DSiSc/evm-NG/system/contract/Interaction"
+	"github.com/DSiSc/evm-NG/system/contract/util"
+	wutils "github.com/DSiSc/wallet/utils"
+	wcmn "github.com/DSiSc/web3go/common"
+	"reflect"
 )
 
 var RpcContractAddr = cutil.HexToAddress("0000000000000000000000000000000000011101")
@@ -18,22 +19,50 @@ var routes = map[string]*RPCFunc{
 	string(util.ExtractMethodHash(util.Hash([]byte("GetTxState(string,string)")))): NewRPCFunc(GetTxState),
 }
 
-func ForwardFunds(toAddr string, amount uint64, chainFlag string) (error, []byte, uint64) {
-	log.Info("forwardFunds--->caohaitao string, uint64, string", toAddr, amount, chainFlag)
-	from := RpcContractAddr
+// 0 means failed, 1 means success
+func ForwardFunds(toAddr string, amount uint64, chainFlag string) (error, string, uint64) {
+	//from := RpcContractAddr
+	from, _ := Interaction.GetPubliceAcccount()
 	to := cutil.HexToAddress(toAddr)
 	hash, err := Interaction.CallCrossRawTransactionReq(from, to, amount, chainFlag)
 	if err != nil {
-		return err, []byte{}, 0
+		return err, "", 0
 	}
 
-	fmt.Printf("haitao hash : %x\n", hash)
-	return err, cutil.HashToBytes(hash), 0
+	hashBytes := cutil.HashToBytes(hash)
+	return err,  wcmn.BytesToHex(hashBytes), 1
 }
 
 // GetCross Tx state
 func GetTxState(txHash string, chainFlag string) (error, uint64){
-	return nil, 0
+
+	//call the broadcast the tx
+	var port string
+	switch chainFlag {
+	case "chainA":
+		port = "47768"
+		break
+	case "chainB":
+		port = "47769"
+		break
+	default:
+		port = ""
+	}
+
+	web, err := wutils.NewWeb3("127.0.0.1", port, false)
+	if err != nil {
+		return err, 0
+	}
+
+	hash := cutil.HexToHash(txHash)
+	receipt, err := web.Eth.GetTransactionReceipt(wcmn.Hash(hash))
+	if err != nil || receipt == nil {
+		return err, 0
+	}
+
+	status := uint64(receipt.Status.Int64())
+
+	return err, status
 }
 
 // Register register a rpc route

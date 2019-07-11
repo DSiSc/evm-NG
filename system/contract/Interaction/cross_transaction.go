@@ -9,11 +9,11 @@ import (
 	"github.com/DSiSc/crypto-suite/crypto"
 	cutil "github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/system/contract/util"
-	"github.com/DSiSc/repository"
 	sutil "github.com/DSiSc/statedb-NG/util"
-	"github.com/DSiSc/txpool"
+	//"github.com/DSiSc/txpool"
 	wtypes "github.com/DSiSc/wallet/core/types"
 	wutils "github.com/DSiSc/wallet/utils"
+	"github.com/DSiSc/web3go/common"
 	"math/big"
 	"github.com/DSiSc/craft/log"
 )
@@ -43,7 +43,7 @@ func NewCrossChainContract() *CrossChainContract {
 //如何获得合约的调用者？？？，保证资金安全性
 func (this *CrossChainContract) forwardFunds(toAddr types.Address, amount uint64, chainFlag string) (types.Hash, bool) {
 	//调用apigateway的receiveCrossTx交易
-	from, err := getPubliceAcccount()
+	from, err := GetPubliceAcccount()
 	if err != nil {
 		return types.Hash{}, false
 	}
@@ -69,10 +69,33 @@ func (this *CrossChainContract) getTxState(address types.Address, chainFlag stri
 func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uint64, chainFlag string) (types.Hash, error) {
 	monitor.JTMetrics.ApigatewayReceivedTx.Add(1)
 
-	tx := new(types.Transaction)
+	//call the broadcast the tx
+	var port string
+	switch chainFlag {
+	case "chainA":
+		port = "47768"
+		break
+	case "chainB":
+		port = "47769"
+		break
+	default:
+		port = ""
+	}
 
+	//web, err := wutils.NewWeb3("47.92.1.248", "47768", false)
+	web, err := wutils.NewWeb3("127.0.0.1", port, false)
+	if err != nil {
+		return types.Hash{}, err
+	}
+
+	bigNonce , err := web.Eth.GetTransactionCount(common.Address(from), "latest")
+	if err != nil {
+		return types.Hash{}, err
+	}
+
+	tx := new(types.Transaction)
 	// Patchwork tx，fix from -- get publicAccount
-	addr, err := getPubliceAcccount()
+	addr, err := GetPubliceAcccount()
 	if err != nil {
 		return types.Hash{}, err
 	}
@@ -82,16 +105,24 @@ func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uin
 	private := "29ad43a4ebb4a65436d9fb116d471d96516b3d5cc153e045b384664bed5371b9"
 
 	//get nonce
-	bc, _ := repository.NewLatestStateRepository()
-	noncePool := txpool.GetPoolNonce(*tx.Data.From)
-	nonceChain := bc.GetNonce(*tx.Data.From)
-	nonce := uint64(0)
-	if noncePool > nonceChain {
-		nonce = noncePool + 1
-	} else {
-		nonce = nonceChain
-	}
+	//bc, _ := repository.NewLatestStateRepository()
+	//noncePool := txpool.GetPoolNonce(*tx.Data.From)
+	//nonceChain := bc.GetNonce(*tx.Data.From)
+	//nonce := uint64(0)
+	//if noncePool > nonceChain {
+	//	nonce = noncePool + 1
+	//} else {
+	//	nonce = nonceChain
+	//}
+
+	nonce := bigNonce.Uint64()
 	tx.Data.AccountNonce = nonce
+
+	//if nonce == 0 {
+	//	tx.Data.AccountNonce = 0
+	//} else {
+	//	tx.Data.AccountNonce =  + 1
+	//}
 	tx.Data.Price = big.NewInt(100)
 	tx.Data.GasLimit = 6721975
 	tx.Data.Recipient = &to
@@ -117,28 +148,14 @@ func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uin
 		return types.Hash{}, err
 	}
 
-	from123, _ := wtypes.Sender(wtypes.NewEIP155Signer(big.NewInt(5777)), tx)
-
-	log.Info("from %x", addr)
-	log.Info("from_123 %x", from123)
+	log.Info("tx getNonce: %x", nonce)
+	log.Info("tx AccountNonce: %x", tx.Data.AccountNonce)
 	log.Info("tx recipient: %x", tx.Data.Recipient)
 	log.Info("tx to: %x", to)
 
-	//call the broadcast the tx
-	var port string
-	switch chainFlag {
-	case "chainA":
-		port = "47768"
-		break
-	case "chainB":
-		port = "47769"
-		break
-	default:
-		port = ""
-	}
 
 	//web, err := wutils.NewWeb3("47.92.1.248", "47768", false)
-	web, err := wutils.NewWeb3("127.0.0.1", port, false)
+	web, err = wutils.NewWeb3("127.0.0.1", port, false)
 	if err != nil {
 		return types.Hash{}, err
 	}
@@ -152,7 +169,7 @@ func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uin
 	return (types.Hash)(txHash), nil
 }
 
-func getPubliceAcccount() (types.Address, error){
+func GetPubliceAcccount() (types.Address, error){
 	//get from config or genesis ?
 	addr := "0x0fA3E9c7065Cf9b5f513Fb878284f902d167870c"
 	address := atypes.HexToAddress(addr)
