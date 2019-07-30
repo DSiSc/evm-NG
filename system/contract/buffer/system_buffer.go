@@ -115,6 +115,7 @@ func (this *SystemBufferContract) Write(data []byte) (uint64, error) {
 	currentLen := this.Length()
 	newStart := currentLen / truncSize
 
+	// TODO：preReserve大小不是一个整的trunc ？？? truncSize - (currentLen % truncSize)
 	// fill full the pre-reserve location
 	if currentLen%truncSize != 0 {
 		preReserve := currentLen % truncSize
@@ -123,6 +124,7 @@ func (this *SystemBufferContract) Write(data []byte) (uint64, error) {
 		if err != nil {
 			return 0, err
 		}
+
 		if uint64(len(data)) > preReserve {
 			err = this.db.Put(key, append(preData, data[:preReserve]...))
 			data = data[preReserve:]
@@ -181,6 +183,7 @@ func (this *SystemBufferContract) Close() error {
 		return err
 	}
 
+	//TODO：可以整除的情况下是否会多释放？（8/4 == 2，释放0，1，2）
 	for i := 0; uint64(i) <= (cacheLen / truncSize); i++ {
 		key := getKey(int64(i))
 		this.db.Delete(key)

@@ -3,15 +3,100 @@ package rpc
 import (
 	"errors"
 	"fmt"
-	cutil "github.com/DSiSc/crypto-suite/util"
-	"github.com/DSiSc/evm-NG/system/contract/util"
 	"reflect"
+	"math/big"
+	"github.com/DSiSc/craft/log"
+	cutil "github.com/DSiSc/crypto-suite/util"
+	"github.com/DSiSc/evm-NG/system/contract/Interaction"
+	"github.com/DSiSc/evm-NG/system/contract/util"
+	wutils "github.com/DSiSc/wallet/utils"
+	wcmn "github.com/DSiSc/web3go/common"
+	"github.com/DSiSc/craft/rlp"
+	wtypes "github.com/DSiSc/wallet/core/types"
+	sutil "github.com/DSiSc/statedb-NG/util"
+	craft "github.com/DSiSc/craft/types"
+	//ctypes "github.com/DSiSc/craft/types"
 )
 
 var RpcContractAddr = cutil.HexToAddress("0000000000000000000000000000000000011101")
 
 // rpc routes
-var routes = map[string]*RPCFunc{}
+var routes = map[string]*RPCFunc{
+	string(util.ExtractMethodHash(util.Hash([]byte("ForwardFunds(string,uint64,string,string)")))): NewRPCFunc(ForwardFunds),
+	string(util.ExtractMethodHash(util.Hash([]byte("GetTxState(string,uint64,string,string)")))): NewRPCFunc(GetTxState),
+	string(util.ExtractMethodHash(util.Hash([]byte("ReceiveFunds(address,uint64,string,uint64)")))): NewRPCFunc(ReceiveFunds),
+}
+
+// 0 means failed, 1 means success
+func ForwardFunds(toAddr string, amount uint64, payload string, chainFlag string) (error, string, string, uint64) {
+	from, _ := Interaction.GetPubliceAcccount()
+	to := cutil.HexToAddress(toAddr)
+	localHash, targetHash, err := Interaction.CallCrossRawTransactionReq(from, to, amount, payload, chainFlag)
+	if err != nil {
+		return err, "", "", 0
+	}
+
+	localBytes := cutil.HashToBytes(localHash)
+	targetBytes := cutil.HashToBytes(targetHash)
+
+	return err, wcmn.BytesToHex(localBytes), wcmn.BytesToHex(targetBytes), 1
+}
+
+// GetCross Tx state
+func GetTxState(txHash string, amount uint64, tmp string, chainFlag string) (error, uint64){
+	//call the broadcast the tx
+	port := Interaction.CrossTargetChainPort(chainFlag)
+
+	web, err := wutils.NewWeb3("127.0.0.1", string(port), false)
+	if err != nil {
+		return err, 0
+	}
+
+	hash := cutil.HexToHash(txHash)
+	receipt, err := web.Eth.GetTransactionReceipt(wcmn.Hash(hash))
+	if err != nil || receipt == nil {
+		return err, 0
+	}
+
+	status := uint64(receipt.Status.Int64())
+	return err, status
+}
+
+// Receipt funds
+func ReceiveFunds(to string, amount uint64, payload string, srcChainId uint64) (error, uint64){
+	//receive tx bytes, decode input
+	input := wcmn.HexToBytes(payload)
+	tx := new(craft.Transaction)
+	if err := rlp.DecodeBytes(input, tx); err != nil {
+
+		ethTx := new(craft.ETransaction)
+		err = ethTx.DecodeBytes(input)
+		if err != nil {
+			log.Info("sendRawTransaction tx decode as ethereum error, err = %v", err)
+			return err, 0
+		}
+		ethTx.SetTxData(&tx.Data)
+	}
+
+	from_, err := wtypes.Sender(wtypes.NewEIP155Signer(big.NewInt(int64(srcChainId))), tx)
+	if err != nil {
+		log.Error("get from address failed, err = %v", err)
+		return err, 0
+	}
+
+	contractAddr := "0x47c5e40890bce4a473a49d7501808b9633f29782"
+	targetToInput := wcmn.BytesToHex(tx.Data.Payload)
+	txToAddr := sutil.AddressToHex(*tx.Data.Recipient)
+	fromAddr := sutil.AddressToHex(craft.Address(from_))
+	txFromAddr := sutil.AddressToHex(*tx.Data.From)
+	//verify args
+	if amount != tx.Data.Amount.Uint64() || contractAddr != txToAddr || fromAddr != txFromAddr || to != targetToInput{
+		return errors.New("tx args not matched tx's"), 0
+	}
+
+	log.Info("ReceiveFunds_verify_success, targetToAddr=%s, amount=%d, srcChainId=%d", to, amount, srcChainId)
+	return nil, 1
+}
 
 // Register register a rpc route
 func Register(methodName string, f *RPCFunc) error {
@@ -42,10 +127,13 @@ func Handler(input []byte) ([]byte, error) {
 	if rpcFunc == nil {
 		return nil, errors.New("routes not found")
 	}
+
 	args, err := inputParamsToArgs(rpcFunc, input[len(method):])
 	if err != nil {
 		return nil, err
 	}
+
+	log.Info("contract RPC method: %s", wcmn.BytesToHex(method))
 	returns := rpcFunc.f.Call(args)
 	return encodeResult(returns)
 }
