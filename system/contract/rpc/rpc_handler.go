@@ -128,13 +128,12 @@ func Handler(input []byte) ([]byte, error) {
 		return nil, errors.New("routes not found")
 	}
 
-	log.Info("<-------handler-------> method", wcmn.BytesToHex(method))
 	args, err := inputParamsToArgs(rpcFunc, input[len(method):])
 	if err != nil {
 		return nil, err
 	}
 
-	log.Info("contract RPC method: ", wcmn.BytesToHex(method))
+	log.Info("contract RPC method: %s", wcmn.BytesToHex(method))
 	returns := rpcFunc.f.Call(args)
 	return encodeResult(returns)
 }

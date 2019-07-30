@@ -161,7 +161,6 @@ func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uin
 	payload_1 := wcmn.BytesToHex(payload_)
 
 	input__ := funcSelector + payload_1[2:]
-	log.Info("two params jion input: ", input__)
 	input_ := wcmn.HexToBytes(input__)
 	target := CrossTargetChainPort(chainFlag)
 	//target := "47768"
@@ -206,8 +205,8 @@ func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uin
 		return types.Hash{}, types.Hash{}, err
 	}
 
-	log.Info("cross funds tx localHash, ", sutil.HashToHex(craft.Hash(localHash)))
-	log.Info("cross funds tx targetHash, ", sutil.HashToHex(craft.Hash(targetHash)))
+	log.Info("cross funds tx localHash, %s", sutil.HashToHex(craft.Hash(localHash)))
+	log.Info("cross funds tx targetHash, %s", sutil.HashToHex(craft.Hash(targetHash)))
 	return types.Hash(localHash), types.Hash(targetHash), nil
 }
 
