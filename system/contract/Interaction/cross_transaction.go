@@ -2,26 +2,44 @@ package Interaction
 
 import (
 	"fmt"
+	"math/big"
+	"errors"
 	atypes "github.com/DSiSc/apigateway/core/types"
 	"github.com/DSiSc/craft/monitor"
 	"github.com/DSiSc/craft/rlp"
 	"github.com/DSiSc/craft/types"
-	"github.com/DSiSc/crypto-suite/crypto"
+	//"github.com/DSiSc/crypto-suite/crypto"
 	cutil "github.com/DSiSc/crypto-suite/util"
 	"github.com/DSiSc/evm-NG/system/contract/util"
-	sutil "github.com/DSiSc/statedb-NG/util"
+	//sutil "github.com/DSiSc/statedb-NG/util"
 	//"github.com/DSiSc/txpool"
 	wtypes "github.com/DSiSc/wallet/core/types"
 	wutils "github.com/DSiSc/wallet/utils"
-	"github.com/DSiSc/web3go/common"
-	"math/big"
+	wcmn "github.com/DSiSc/web3go/common"
+	craft "github.com/DSiSc/craft/types"
+	sutil "github.com/DSiSc/statedb-NG/util"
 	"github.com/DSiSc/craft/log"
+	"github.com/DSiSc/crypto-suite/crypto"
+	eutil "github.com/DSiSc/evm-NG/system/contract/util"
 )
 
 const(
 	FAILED = iota
 	SUCCESS
 	PENDING
+)
+
+type CrossChainPort string
+// define specified type of system contract
+const (
+	Null = "Null"
+	JustitiaChainA = "chainA"
+	JustitiaChainB = "chainB"
+)
+const (
+	InitialCrossChainPort CrossChainPort = "0"
+	ChainACrossChainPort = "47768"
+	ChainBCrossChainPort = "47769"
 )
 
 type Status uint64
@@ -40,15 +58,35 @@ func NewCrossChainContract() *CrossChainContract {
 	return new(CrossChainContract)
 }
 
+func CrossTargetChainPort(chainFlag string) CrossChainPort {
+	var crossPort = InitialCrossChainPort
+	if chainFlag == JustitiaChainA {
+		crossPort = ChainACrossChainPort
+	} else if chainFlag == JustitiaChainB {
+		crossPort = ChainBCrossChainPort
+	}
+	return crossPort
+}
+
+func OppositeChainPort(chainFlag string) CrossChainPort {
+	var crossPort = InitialCrossChainPort
+	if chainFlag == JustitiaChainA {
+		crossPort = ChainBCrossChainPort
+	} else if chainFlag == JustitiaChainB {
+		crossPort = ChainACrossChainPort
+	}
+	return crossPort
+}
+
 //如何获得合约的调用者？？？，保证资金安全性
-func (this *CrossChainContract) forwardFunds(toAddr types.Address, amount uint64, chainFlag string) (types.Hash, bool) {
+func (this *CrossChainContract) forwardFunds(toAddr types.Address, amount uint64, payload string, chainFlag string) (types.Hash, bool) {
 	//调用apigateway的receiveCrossTx交易
 	from, err := GetPubliceAcccount()
 	if err != nil {
 		return types.Hash{}, false
 	}
 
-	hash, err := CallCrossRawTransactionReq(from, toAddr, amount, chainFlag)
+	hash, _, err := CallCrossRawTransactionReq(from, toAddr, amount, payload, chainFlag)
 	if err != nil {
 		return types.Hash{}, false
 	}
@@ -66,107 +104,111 @@ func (this *CrossChainContract) getTxState(address types.Address, chainFlag stri
 	return SUCCESS, true
 }
 
-func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uint64, chainFlag string) (types.Hash, error) {
+func CallCrossRawTransactionReq(from types.Address, to types.Address, amount uint64, payload string, chainFlag string) (types.Hash, types.Hash, error) {
 	monitor.JTMetrics.ApigatewayReceivedTx.Add(1)
 
 	//call the broadcast the tx
-	var port string
-	switch chainFlag {
-	case "chainA":
-		port = "47768"
-		break
-	case "chainB":
-		port = "47769"
-		break
-	default:
-		port = ""
-	}
+	//port := CrossTargetChainPort(chainFlag)
 
-	//web, err := wutils.NewWeb3("47.92.1.248", "47768", false)
-	web, err := wutils.NewWeb3("127.0.0.1", port, false)
+	local := OppositeChainPort(chainFlag)
+	web, err := wutils.NewWeb3("127.0.0.1", string(local), false)
+	//web, err := wutils.NewWeb3("127.0.0.1", string(port), false)
 	if err != nil {
-		return types.Hash{}, err
+		return types.Hash{}, types.Hash{}, err
 	}
 
-	bigNonce , err := web.Eth.GetTransactionCount(common.Address(from), "latest")
+	// receive tx bytes, decode input
+	input := wcmn.HexToBytes(payload)
+	tx := new(craft.Transaction)
+	if err := rlp.DecodeBytes(input, tx); err != nil {
+
+		ethTx := new(craft.ETransaction)
+		err = ethTx.DecodeBytes(input)
+		if err != nil {
+			log.Info("sendRawTransaction tx decode as ethereum error, err = %v", err)
+			return types.Hash{}, types.Hash{}, err
+		}
+		ethTx.SetTxData(&tx.Data)
+	}
+
+	contractAddr := "0x47c5e40890bce4a473a49d7501808b9633f29782"
+	txToAddr := sutil.AddressToHex(*tx.Data.Recipient)
+	//TODO: verify args;add verify contract call addr is equal to payload from, or signer
+	if amount != tx.Data.Amount.Uint64() || contractAddr != txToAddr {
+		return types.Hash{}, types.Hash{}, errors.New("tx args not matched tx's")
+	}
+
+	//sendRawTransaction
+	localHash, err := web.Eth.SendRawTransaction(input)
 	if err != nil {
-		return types.Hash{}, err
+		return types.Hash{}, types.Hash{}, err
 	}
 
-	tx := new(types.Transaction)
-	// Patchwork tx，fix from -- get publicAccount
+	//switch payload to target chian's contract
+	//TODO: construct a tx, which contract call
+	argTo := to
+	argPayload := payload
+	argAmount := amount
+	argChainId := uint64(5777)
+
+	payload_, err := eutil.EncodeReturnValue(argTo, argPayload, argAmount, argChainId)
+	if err != nil {
+		return types.Hash{}, types.Hash{}, err
+	}
+	//funcSelector := wcmn.BytesToHex(util.ExtractMethodHash(util.Hash([]byte("ReceiveFunds(address,uint64,string,uint64)"))))
+	funcSelector := "0xd0fe3c8b"
+	//funcSelector := "0x5e678a44"
+	payload_1 := wcmn.BytesToHex(payload_)
+
+	input__ := funcSelector + payload_1[2:]
+	log.Info("two params jion input: ", input__)
+	input_ := wcmn.HexToBytes(input__)
+	target := CrossTargetChainPort(chainFlag)
+	//target := "47768"
+	web_, err := wutils.NewWeb3("127.0.0.1", string(target), false)
+	bigNonce , err := web_.Eth.GetTransactionCount(wcmn.Address(from), "latest")
+	if err != nil {
+		return types.Hash{}, types.Hash{}, err
+	}
+
+	tx_ := new(types.Transaction)
 	addr, err := GetPubliceAcccount()
 	if err != nil {
-		return types.Hash{}, err
+		return types.Hash{}, types.Hash{}, err
 	}
-	tx.Data.From = &addr
-
-	// like sendTransaction, need sig
+	tx_.Data.From = &addr
+	to_ := cutil.HexToAddress("47c5e40890bce4a473a49d7501808b9633f29782")
 	private := "29ad43a4ebb4a65436d9fb116d471d96516b3d5cc153e045b384664bed5371b9"
-
-	//get nonce
-	//bc, _ := repository.NewLatestStateRepository()
-	//noncePool := txpool.GetPoolNonce(*tx.Data.From)
-	//nonceChain := bc.GetNonce(*tx.Data.From)
-	//nonce := uint64(0)
-	//if noncePool > nonceChain {
-	//	nonce = noncePool + 1
-	//} else {
-	//	nonce = nonceChain
-	//}
-
 	nonce := bigNonce.Uint64()
-	tx.Data.AccountNonce = nonce
-
-	//if nonce == 0 {
-	//	tx.Data.AccountNonce = 0
-	//} else {
-	//	tx.Data.AccountNonce =  + 1
-	//}
-	tx.Data.Price = big.NewInt(100)
-	tx.Data.GasLimit = 6721975
-	tx.Data.Recipient = &to
-	tx.Data.Amount = big.NewInt(int64(amount))
-
-	//payload
-	tx.Data.Payload = []byte(sutil.AddressToHex(from))
+	tx_.Data.AccountNonce = nonce
+	tx_.Data.Price = big.NewInt(0)
+	tx_.Data.GasLimit = 6721975
+	tx_.Data.Recipient = &to_
+	tx_.Data.Amount = big.NewInt(int64(0))
+	//payload填充问题，填充合约调用的参数
+	tx_.Data.Payload = input_
 
 	//sign tx
 	priKey, err := crypto.HexToECDSA(private)
 	if err != nil {
-		return types.Hash{}, err
+		return types.Hash{}, types.Hash{}, err
 	}
-
-	//chainId, err := config.GetChainIdFromConfig()
-	//if err != nil {
-	//	return types.Hash{}, err
-	//}
 
 	chainID := big.NewInt(int64(5777))
-	tx, err = wtypes.SignTx(tx, wtypes.NewEIP155Signer(chainID), priKey)
+	tx_, err = wtypes.SignTx(tx_, wtypes.NewEIP155Signer(chainID), priKey)
 	if err != nil {
-		return types.Hash{}, err
+		return types.Hash{}, types.Hash{}, err
 	}
 
-	log.Info("tx getNonce: %x", nonce)
-	log.Info("tx AccountNonce: %x", tx.Data.AccountNonce)
-	log.Info("tx recipient: %x", tx.Data.Recipient)
-	log.Info("tx to: %x", to)
-
-
-	//web, err := wutils.NewWeb3("47.92.1.248", "47768", false)
-	web, err = wutils.NewWeb3("127.0.0.1", port, false)
+	txBytes, _ := rlp.EncodeToBytes(tx_)
+	targetHash, err := web_.Eth.SendRawTransaction(txBytes)
 	if err != nil {
-		return types.Hash{}, err
+		return types.Hash{}, types.Hash{}, err
 	}
 
-	txBytes, _ := rlp.EncodeToBytes(tx)
-	txHash, err := web.Eth.SendRawTransaction(txBytes)
-	if err != nil {
-		return types.Hash{}, err
-	}
-
-	return (types.Hash)(txHash), nil
+	log.Info("cross funds tx localHash, ", sutil.HashToHex(craft.Hash(localHash)))
+	log.Info("cross funds tx targetHash, ", sutil.HashToHex(craft.Hash(targetHash)))
+	return types.Hash(localHash), types.Hash(targetHash), nil
 }
 
 func GetPubliceAcccount() (types.Address, error){

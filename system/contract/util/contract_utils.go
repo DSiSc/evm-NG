@@ -6,6 +6,7 @@ import (
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/evm-NG/common/math"
 	"github.com/DSiSc/evm-NG/constant"
+	"github.com/DSiSc/statedb-NG/util"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 	"math/big"
@@ -38,6 +39,7 @@ func ExtractParam(input []byte, args ...interface{}) error {
 		if rv.Kind() != reflect.Ptr || rv.IsNil() {
 			return InvalidUnmarshalError
 		}
+
 		switch rv.Elem().Type().Kind() {
 		case reflect.String:
 			arg := string(extractDynamicTypeData(input, i))
@@ -51,6 +53,9 @@ func ExtractParam(input []byte, args ...interface{}) error {
 		case reflect.Uint64:
 			arg, _ := math.ParseUint64(hexutil.Encode(input[i*constant.EvmWordSize : (i+1)*constant.EvmWordSize]))
 			rv.Elem().SetUint(arg)
+		case reflect.Array:
+			arg := arrayByte20(input, i)
+			rv.Elem().SetBytes(arg)
 		default:
 			return UnSupportedTypeError
 		}
@@ -61,6 +66,12 @@ func ExtractParam(input []byte, args ...interface{}) error {
 // extract dynamic type data
 func extractDynamicTypeData(totalInput []byte, varIndex int) []byte {
 	offset, _ := math.ParseUint64(hexutil.Encode(totalInput[varIndex*constant.EvmWordSize : (varIndex+1)*constant.EvmWordSize]))
+	if offset >= uint64(len(totalInput)) {
+		// address type
+		addr := util.BytesToAddress(arrayByte20(totalInput, varIndex))
+		addrStr := util.AddressToHex(addr)
+		return []byte(addrStr)
+	}
 	dataLen, _ := math.ParseUint64(hexutil.Encode(totalInput[offset : offset+constant.EvmWordSize]))
 	argStart := offset + constant.EvmWordSize
 	argEnd := argStart + dataLen
@@ -119,4 +130,10 @@ func encodeBytes(val []byte) []byte {
 		}
 	}
 	return ret
+}
+
+func arrayByte20(totalInput []byte, varIndex int) []byte {
+	offset := varIndex*constant.EvmWordSize + constant.AddressOffset
+	addrByte := totalInput[offset : (varIndex+1)*constant.EvmWordSize]
+	return []byte(addrByte)
 }

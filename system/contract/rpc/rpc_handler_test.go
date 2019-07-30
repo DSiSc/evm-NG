@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/DSiSc/evm-NG/common"
 	"github.com/DSiSc/evm-NG/common/hexutil"
 	"github.com/DSiSc/evm-NG/system/contract/util"
 	"github.com/pkg/errors"
@@ -44,6 +45,9 @@ func TestRegister(t *testing.T) {
 	assert.Nil(err)
 	methodHash := util.Hash([]byte("Method1(string,uint64)"))[:4]
 	assert.NotNil(routes[string(methodHash)])
+
+	optionFunc := util.ExtractMethodHash(util.Hash([]byte("ReceiveFunds(string, uint64)")))
+	fmt.Println(common.Bytes2Hex(optionFunc))
 }
 
 func TestNewRPCFunc(t *testing.T) {
