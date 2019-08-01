@@ -212,3 +212,4 @@ func funcReturnTypes(f interface{}) []reflect.Type {
 	}
 	return typez
 }
+
